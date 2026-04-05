@@ -1,0 +1,231 @@
+{
+  "generated_at": "2026-04-02T06:00:00+08:00",
+  "stats": {
+    "strong": 46,
+    "medium": 8,
+    "backfill": 25,
+    "total": 79,
+    "selected": 10
+  },
+  "items": [
+    {
+      "index": 1,
+      "canonical_id": "2039369121591120030",
+      "title": "Arcee AI 发布 Trinity-Large-Thinking：专注推理的长思考链大模型",
+      "author": "Arcee.ai",
+      "author_screen_name": "arcee_ai",
+      "category": "模型发布",
+      "is_highlight": true,
+      "summary": "Arcee AI 发布 Trinity-Large-Thinking 模型，专注推理能力，通过 API 和 Hugging Face 开源权重提供。相关讨论：xlr8harder 提出思考效率优化方向。",
+      "metrics": {
+        "likes": 1023,
+        "views": 214312,
+        "bookmarks": 485
+      },
+      "primary_url": "https://x.com/arcee_ai/status/2039369121591120030",
+      "strong_links": [],
+      "external_links": [],
+      "related_urls": [
+        "https://x.com/xlr8harder/status/2039389523403059257"
+      ],
+      "is_backfill": false,
+      "is_followup": false
+    },
+    {
+      "index": 2,
+      "canonical_id": "2039421583178219682",
+      "title": "Claude Code 发布 NO_FLICKER 模式：实验性渲染器解决终端闪烁问题",
+      "author": "Boris Cherny",
+      "author_screen_name": "bcherny",
+      "category": "开发生态",
+      "is_highlight": true,
+      "summary": "Anthropic Claude Code 团队发布 NO_FLICKER 实验性渲染模式，解决终端闪烁问题，支持鼠标事件，已获内部广泛采用。官方文档已发布。",
+      "metrics": {
+        "likes": 176,
+        "views": 43155,
+        "bookmarks": 61
+      },
+      "primary_url": "https://x.com/bcherny/status/2039421583178219682",
+      "strong_links": [
+        "https://code.claude.com/docs/en/fullscreen"
+      ],
+      "external_links": [
+        "https://code.claude.com/docs/en/fullscreen"
+      ],
+      "related_urls": [],
+      "is_backfill": false,
+      "is_followup": false
+    },
+    {
+      "index": 3,
+      "canonical_id": "2039415430994100440",
+      "title": "Claude Code 源码泄露 24 小时内获 110k+ GitHub stars：开源社区热潮",
+      "author": "Yuchen Jin",
+      "author_screen_name": "Yuchenj_UW",
+      "category": "开发生态",
+      "is_highlight": true,
+      "summary": "Claude Code 源码泄露事件引发社区热潮，24 小时内斩获 110k+ GitHub stars，成为 Anthropic 热门榜第一开源项目。Yuchen Jin 指出 Anthropic 对泄露事件态度淡定：泄露即泄露。",
+      "metrics": {
+        "likes": 1218,
+        "views": 50951,
+        "bookmarks": 122
+      },
+      "primary_url": "https://x.com/Yuchenj_UW/status/2039415430994100440",
+      "strong_links": [],
+      "external_links": [],
+      "related_urls": [],
+      "is_backfill": false,
+      "is_followup": false
+    },
+    {
+      "index": 4,
+      "canonical_id": "2037231932216693005",
+      "title": "HuggingFace 发布 TRL v1：75+ 训练方法，支持 SFT/DPO/GRPO/异步 RL",
+      "author": "Clement Delangue",
+      "author_screen_name": "ClementDelangue",
+      "category": "开发生态",
+      "is_highlight": false,
+      "summary": "HuggingFace 发布 TRL v1，支持 75+ 训练方法，涵盖 SFT、DPO、GRPO、异步 RL 等最新技术，充分利用最新开源模型能力。",
+      "metrics": {
+        "likes": 982,
+        "views": 71987,
+        "bookmarks": 539
+      },
+      "primary_url": "https://x.com/ClementDelangue/status/2037231932216693005",
+      "strong_links": [],
+      "external_links": [],
+      "related_urls": [],
+      "is_backfill": false,
+      "is_followup": false
+    },
+    {
+      "index": 5,
+      "canonical_id": "2039358115318243352",
+      "title": "Dr. Jim Fan 开源 CaP-X：vibe agents 落地物理世界的机器人+AI 编码框架",
+      "author": "Dr. Jim Fan",
+      "author_screen_name": "DrJimFan",
+      "category": "开发生态",
+      "is_highlight": true,
+      "summary": "Nvidia AI 科学家 Dr. Jim Fan 开源 CaP-X（Chain-of-Manipulation-X）：vibe agents 落地物理世界的机器人编码框架，将 AI coding agent 能力扩展到真实机器人控制。",
+      "metrics": {
+        "likes": 482,
+        "views": 35303,
+        "bookmarks": 276
+      },
+      "primary_url": "https://x.com/DrJimFan/status/2039358115318243352",
+      "strong_links": [],
+      "external_links": [],
+      "related_urls": [],
+      "is_backfill": false,
+      "is_followup": false
+    },
+    {
+      "index": 6,
+      "canonical_id": "2038960489154380261",
+      "title": "「延迟发酵 3月31日」Claude Code 内置\"沮丧用户检测\"正则表达式引发讨论",
+      "author": "Humi",
+      "author_screen_name": "byteHumi",
+      "category": "开发生态",
+      "is_highlight": false,
+      "summary": "Claude Code 内置了一个\"Frustrated User Detection\"正则表达式，用于检测用户情绪，引发社区热议。开发者视角：Claude Code 已在情绪感知方向做出工程实现。",
+      "metrics": {
+        "likes": 5367,
+        "views": 544402,
+        "bookmarks": 1254
+      },
+      "primary_url": "https://x.com/byteHumi/status/2038960489154380261",
+      "strong_links": [],
+      "external_links": [],
+      "related_urls": [],
+      "is_backfill": true,
+      "is_followup": false
+    },
+    {
+      "index": 7,
+      "canonical_id": "2039116480449528083",
+      "title": "Google 团队详解 NPM axios 供应链攻击：已确认归属并持续追踪",
+      "author": "Austin Larsen",
+      "author_screen_name": "AustinLarsen_",
+      "category": "安全事件",
+      "is_highlight": true,
+      "summary": "Google 安全团队发布 NPM axios 供应链攻击详细分析，确认攻击归属并持续追踪。事件波及 AI/ML 生态中依赖该包的开发者工作流。",
+      "metrics": {
+        "likes": 1404,
+        "views": 175332,
+        "bookmarks": 355
+      },
+      "primary_url": "https://x.com/AustinLarsen_/status/2039116480449528083",
+      "strong_links": [],
+      "external_links": [],
+      "related_urls": [],
+      "is_backfill": false,
+      "is_followup": false
+    },
+    {
+      "index": 8,
+      "canonical_id": "2039225632240873752",
+      "title": "「跟进」GitHub 仓库收到 Claude 相关 DMCA 撤架通知：wildcard 波及非泄露 repos",
+      "author": "Krzysztof Zabłocki",
+      "author_screen_name": "merowing_",
+      "category": "安全事件",
+      "is_highlight": false,
+      "summary": "Claude Code 泄露事件持续发酵：多个非泄露相关的 GitHub 仓库收到 Claude DMCA 撤架通知。开发者 Krzysztof Zabłocki 表示，其 repo 并非泄露内容但同样收到通知，引发对 DMCA wildcard 执法的质疑。",
+      "metrics": {
+        "likes": 234,
+        "views": 44432,
+        "bookmarks": 16
+      },
+      "primary_url": "https://x.com/merowing_/status/2039225632240873752",
+      "strong_links": [],
+      "external_links": [],
+      "related_urls": [],
+      "is_backfill": false,
+      "is_followup": true
+    },
+    {
+      "index": 9,
+      "canonical_id": "2039383554510217707",
+      "title": "Google DeepMind 新论文：AI Agent 最大威胁是 Web 本身而非攻击者",
+      "author": "elvis",
+      "author_screen_name": "omarsar0",
+      "category": "技术洞察",
+      "is_highlight": false,
+      "summary": "Google DeepMind 新论文指出：AI Agent 面临的最大威胁并非更聪明的攻击者，而是 Web 本身——论文提出了首个系统性分析 Web 对 AI Agent 威胁的研究框架。",
+      "metrics": {
+        "likes": 234,
+        "views": 18748,
+        "bookmarks": 219
+      },
+      "primary_url": "https://x.com/omarsar0/status/2039383554510217707",
+      "strong_links": [],
+      "external_links": [],
+      "related_urls": [],
+      "is_backfill": false,
+      "is_followup": false
+    },
+    {
+      "index": 10,
+      "canonical_id": "2039343043908714946",
+      "title": "AI 最大误区：有用模型必须庞大，0.6B 小模型即可处理智能家居函数调用",
+      "author": "Jacek Golebiowski",
+      "author_screen_name": "j_golebiowski",
+      "category": "技术洞察",
+      "is_highlight": false,
+      "summary": "研究证明 AI 最大误区是认为有用模型必须庞大：0.6B 参数模型可处理智能家居函数调用，4B 模型在 Text2SQL 上达 98% 准确率。8 个数据集上的微调实验表明小型模型在特定任务上表现优异。",
+      "metrics": {
+        "likes": 227,
+        "views": 12873,
+        "bookmarks": 151
+      },
+      "primary_url": "https://x.com/j_golebiowski/status/2039343043908714946",
+      "strong_links": [],
+      "external_links": [],
+      "related_urls": [],
+      "is_backfill": false,
+      "is_followup": false
+    }
+  ],
+  "report_date": "2026-04-02",
+  "title": "AI 资讯日报 2026-04-02",
+  "description": "每日 AI 领域精选资讯"
+}

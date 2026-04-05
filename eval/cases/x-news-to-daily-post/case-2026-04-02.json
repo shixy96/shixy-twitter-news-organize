@@ -1,0 +1,21 @@
+{
+  "id": "case-2026-04-02",
+  "skill": "x-news-to-daily-post",
+  "report_date": "2026-04-02",
+  "execution_mode": "fixture_copy",
+  "runs": 8,
+  "inputs": {
+    "report_date": "2026-04-02"
+  },
+  "artifacts": {
+    "companion.json": "eval/fixtures/2026-04-02/companion.json",
+    "post.json": "eval/fixtures/2026-04-02/post.json",
+    "post.md": "eval/fixtures/2026-04-02/post.md"
+  },
+  "expected": {
+    "item_count_match": true,
+    "category_count_min": 3,
+    "category_count_max": 6,
+    "has_frontmatter": true
+  }
+}

@@ -1,0 +1,247 @@
+{
+  "generated_at": "2026-04-01T06:00:00+08:00",
+  "stats": {
+    "strong": 51,
+    "medium": 4,
+    "backfill": 14,
+    "total": 69,
+    "selected": 10
+  },
+  "items": [
+    {
+      "index": 1,
+      "canonical_id": "2038967842075500870",
+      "title": "NEW Stanford & MIT paper on Model Harnesses.",
+      "author": "elvis",
+      "author_screen_name": "omarsar0",
+      "category": "开发生态",
+      "is_highlight": true,
+      "summary": "NEW Stanford & MIT paper on Model Harnesses.",
+      "metrics": {
+        "likes": 296,
+        "views": 37783,
+        "bookmarks": 311
+      },
+      "primary_url": "https://x.com/omarsar0/status/2038967842075500870",
+      "strong_links": [],
+      "external_links": [],
+      "related_urls": [],
+      "is_backfill": false,
+      "is_followup": false
+    },
+    {
+      "index": 2,
+      "canonical_id": "2039029676040220682",
+      "title": "Beyond raw model capability, the real gap in coding tools is the harness.",
+      "author": "Yuchen Jin",
+      "author_screen_name": "Yuchenj_UW",
+      "category": "开发生态",
+      "is_highlight": true,
+      "summary": "Beyond raw model capability, the real gap in coding tools is the harness.",
+      "metrics": {
+        "likes": 760,
+        "views": 83944,
+        "bookmarks": 148
+      },
+      "primary_url": "https://x.com/Yuchenj_UW/status/2039029676040220682",
+      "strong_links": [],
+      "external_links": [],
+      "related_urls": [],
+      "is_backfill": false,
+      "is_followup": false
+    },
+    {
+      "index": 3,
+      "canonical_id": "2038968068706390117",
+      "title": "Agent harnesses are too restrictive.",
+      "author": "DAIR.AI",
+      "author_screen_name": "dair_ai",
+      "category": "开发生态",
+      "is_highlight": true,
+      "summary": "Agent harnesses are too restrictive.",
+      "metrics": {
+        "likes": 158,
+        "views": 24282,
+        "bookmarks": 172
+      },
+      "primary_url": "https://x.com/dair_ai/status/2038968068706390117",
+      "strong_links": [],
+      "external_links": [],
+      "related_urls": [
+        "https://x.com/omarsar0/status/2038969625371652517"
+      ],
+      "is_backfill": false,
+      "is_followup": false
+    },
+    {
+      "index": 4,
+      "canonical_id": "2038971910835560921",
+      "title": "🚨 We can download models, but not see how they were built.",
+      "author": "Yi wei Qin",
+      "author_screen_name": "QinYi88814",
+      "category": "开发生态",
+      "is_highlight": true,
+      "summary": "🚨 We can download models, but not see how they were built.",
+      "metrics": {
+        "likes": 251,
+        "views": 21245,
+        "bookmarks": 135
+      },
+      "primary_url": "https://x.com/QinYi88814/status/2038971910835560921",
+      "strong_links": [
+        "https://huggingface.co/papers/2603.27164"
+      ],
+      "external_links": [
+        "https://huggingface.co/papers/2603.27164"
+      ],
+      "related_urls": [],
+      "is_backfill": false,
+      "is_followup": false
+    },
+    {
+      "index": 5,
+      "canonical_id": "2039025542167695803",
+      "title": "Introducing Mercury Edit 2: highest quality next-edit model at the lowest latenc",
+      "author": "Inception",
+      "author_screen_name": "_inception_ai",
+      "category": "技术洞察",
+      "is_highlight": false,
+      "summary": "Introducing Mercury Edit 2: highest quality next-edit model at the lowest latency.",
+      "metrics": {
+        "likes": 393,
+        "views": 29454,
+        "bookmarks": 146
+      },
+      "primary_url": "https://x.com/_inception_ai/status/2039025542167695803",
+      "strong_links": [],
+      "external_links": [],
+      "related_urls": [],
+      "is_backfill": false,
+      "is_followup": false
+    },
+    {
+      "index": 6,
+      "canonical_id": "2038989707917271210",
+      "title": "Dr. LeCun's heavily promoted Joint Embedding Predictive Architecture (JEPA, 2022",
+      "author": "Jürgen Schmidhuber",
+      "author_screen_name": "SchmidhuberAI",
+      "category": "技术洞察",
+      "is_highlight": false,
+      "summary": "Dr. LeCun's heavily promoted Joint Embedding Predictive Architecture (JEPA, 2022) [5] is the heart of his new company. However, the core ideas are not",
+      "metrics": {
+        "likes": 1349,
+        "views": 261902,
+        "bookmarks": 993
+      },
+      "primary_url": "https://x.com/SchmidhuberAI/status/2038989707917271210",
+      "strong_links": [],
+      "external_links": [],
+      "related_urls": [
+        "https://x.com/GaryMarcus/status/2038990871308493247"
+      ],
+      "is_backfill": false,
+      "is_followup": false
+    },
+    {
+      "index": 7,
+      "canonical_id": "2039021096649805937",
+      "title": "Holo3 is here 🚀.",
+      "author": "H",
+      "author_screen_name": "hcompany_ai",
+      "category": "模型发布",
+      "is_highlight": true,
+      "summary": "Holo3 is here 🚀.",
+      "metrics": {
+        "likes": 1473,
+        "views": 191311,
+        "bookmarks": 996
+      },
+      "primary_url": "https://x.com/hcompany_ai/status/2039021096649805937",
+      "strong_links": [],
+      "external_links": [],
+      "related_urls": [],
+      "is_backfill": false,
+      "is_followup": false
+    },
+    {
+      "index": 8,
+      "canonical_id": "2039062977932841471",
+      "title": "As Yann LeCun and his team has brought a new wave of World Models research into",
+      "author": "alphaXiv",
+      "author_screen_name": "askalphaxiv",
+      "category": "模型发布",
+      "is_highlight": false,
+      "summary": "As Yann LeCun and his team has brought a new wave of World Models research into 2026, we have compiled a reading list to recap some of the must-read p",
+      "metrics": {
+        "likes": 719,
+        "views": 41219,
+        "bookmarks": 596
+      },
+      "primary_url": "https://x.com/askalphaxiv/status/2039062977932841471",
+      "strong_links": [],
+      "external_links": [],
+      "related_urls": [],
+      "is_backfill": false,
+      "is_followup": false
+    },
+    {
+      "index": 9,
+      "canonical_id": "2036080584569618741",
+      "title": "Paper review: LeWorldModel: Stable End-to-End Joint-Embedding Predictive Archite",
+      "author": "Lucas Maes",
+      "author_screen_name": "lucasmaes_",
+      "category": "行业观点",
+      "is_highlight": true,
+      "summary": "Paper review: LeWorldModel: Stable End-to-End Joint-Embedding Predictive Architecture from Pixels",
+      "metrics": {
+        "likes": 764,
+        "views": 167400,
+        "bookmarks": 515
+      },
+      "primary_url": "https://x.com/lucasmaes_/status/2036080584569618741",
+      "strong_links": [
+        "https://github.com/lucas-maes/le-wm",
+        "https://github.com/galilai-group/stable-worldmodel",
+        "https://arxiv.org/pdf/2603.19312",
+        "https://huggingface.co/collections/quentinll/lewm"
+      ],
+      "external_links": [
+        "https://github.com/lucas-maes/le-wm",
+        "https://github.com/galilai-group/stable-worldmodel",
+        "https://arxiv.org/pdf/2603.19312",
+        "https://huggingface.co/collections/quentinll/lewm"
+      ],
+      "related_urls": [
+        "https://x.com/quentinlldc/status/2038986438088257558"
+      ],
+      "is_backfill": false,
+      "is_followup": false
+    },
+    {
+      "index": 10,
+      "canonical_id": "2038760365660541383",
+      "title": "In what world is it okay for the Defense Secretary to make multi-million dollar",
+      "author": "Justin Wolfers",
+      "author_screen_name": "JustinWolfers",
+      "category": "产品动态",
+      "is_highlight": false,
+      "summary": "In what world is it okay for the Defense Secretary to make multi-million dollar investments in defense companies:",
+      "metrics": {
+        "likes": 11193,
+        "views": 240618,
+        "bookmarks": 632
+      },
+      "primary_url": "https://x.com/JustinWolfers/status/2038760365660541383",
+      "strong_links": [],
+      "external_links": [
+        "https://ft.com/content/744ea8dc-6d93-4fe9-a5e3-36de4f5d06db?syn-25a6b1a6=1"
+      ],
+      "related_urls": [],
+      "is_backfill": false,
+      "is_followup": false
+    }
+  ],
+  "report_date": "2026-04-01",
+  "title": "AI 资讯日报 2026-04-01",
+  "description": "每日 AI 领域精选资讯"
+}

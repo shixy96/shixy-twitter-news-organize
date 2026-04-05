@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(update-config)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // .tool_response.filePath' 2>/dev/null | grep -E '\\.py$' | head -1 | { read -r f; [ -n \"$f\" ] && ruff format \"$f\"; } || true",
+            "timeout": 30,
+            "statusMessage": "Formatting Python..."
+          }
+        ]
+      }
+    ]
+  }
+}

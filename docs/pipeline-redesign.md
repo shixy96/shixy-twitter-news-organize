@@ -1,6 +1,6 @@
 # x-news Pipeline 整理计划
 
-> original prompt: 这个项目是一个 skill-native 的项目，需要把 @../skills/x-news-data-pipeline/ @../skills/x-news-editorial/ @../skills/x-news-to-daily-post/ @../skills/x-news-tts/ 整合起来(不是做成一个 skill，还是要按照职责分，避免一个 skill 包揽好几件完全不同的事)，整体流程见 @../cron/jobs.json "X List AI-NEWS 每日分析" job。目标是做成可分发的、效果稳定的 skill 仓库。需要整理整个流程，去掉冗余的、不确定的部分，要做 skill evaluation harness，提高 skill 的可评测性
+> original prompt: 这个项目是一个 skill-native 的项目，需要把 @../skills/skills/x-news-data-pipeline/ @../skills/skills/x-news-editorial/ @../skills/skills/x-news-to-daily-post/ @../skills/skills/x-news-tts/ 整合起来(不是做成一个 skill，还是要按照职责分，避免一个 skill 包揽好几件完全不同的事)，整体流程见 @../cron/jobs.json "X List AI-NEWS 每日分析" job。目标是做成可分发的、效果稳定的 skill 仓库。需要整理整个流程，去掉冗余的、不确定的部分，要做 skill evaluation harness，提高 skill 的可评测性
 > 本文档是 x-news 日更 AI 新闻 pipeline 的重构设计文档。作为 handoff 文档，包含完整的背景、已知问题、设计决策和实施指南
 
 ## Context
@@ -48,7 +48,7 @@ data-pipeline: raw.json + filtered.json
      ↓
 editorial: filtered.json + dedup.py → companion.json
      ↓
-daily-post: companion.json + enrich.py + assemble.py → post.json + post.md + media/
+daily-post: companion.json + enrich.py + Agent assemble step → post.json + post.md + media/
      ↓
 tts: post.json → script.txt + audio.mp3
      ↓
@@ -85,7 +85,7 @@ quality-audit: 全链路 JSON 校验 + qa-report.md
 
 **1. 架构是否 sound？阶段边界是否清晰？**
 
-五阶段 + JSON 边界契约是成熟模式，阶段边界逻辑清晰。有一个边界模糊之处：enrich.py 标注为"脚本化"，但它需要网络调用（twitter CLI、gh CLI、WebFetch），这实际上是 I/O 密集型获取步骤，不是纯转换。设计原则 4 说"daily-post 只做转化"与此存在矛盾——已明确：enrich.py 负责信息获取，assemble.py 是 Agent 步骤。
+五阶段 + JSON 边界契约是成熟模式，阶段边界逻辑清晰。有一个边界模糊之处：enrich.py 标注为"脚本化"，但它需要网络调用（twitter CLI、gh CLI、WebFetch），这实际上是 I/O 密集型获取步骤，不是纯转换。设计原则 4 说"daily-post 只做转化"与此存在矛盾——已明确：enrich.py 负责信息获取，assemble 是 Agent 组装步骤。
 
 **2. 去掉 report.md 是否正确？**
 
@@ -97,7 +97,7 @@ quality-audit: 全链路 JSON 校验 + qa-report.md
 
 **4. Agent 步骤 vs 脚本步骤的划分是否合理？**
 
-合理，但 assemble.py 存在歧义：它在文档中列为"脚本化"，但 body 生成本质上是 Agent 工作（"高价值 3-4 段"、"metrics 口语化"）。已明确：assemble.py 是 Agent 步骤，脚本只负责收集/校验/格式化。
+合理，但 `assemble` 命名存在歧义：它在文档中容易被误读为脚本化步骤，但 body 生成本质上是 Agent 工作（"高价值 3-4 段"、"metrics 口语化"）。已明确：assemble 是 Agent 组装步骤，不是仓库里的脚本文件；脚本只负责收集/校验/格式化。
 
 ### 实现分析
 
@@ -127,7 +127,7 @@ validate_report.py 有三部分逻辑：
 |------|------|------|
 | Phase 4 集中切换 | 高 | editorial/daily-post/quality-audit 需同步切换，否则 pipeline break |
 | enrich.py 工具调用 | 高 | standalone 脚本如何调用 twitter/gh/WebFetch 工具，需明确 subprocess 方案 |
-| assemble.py 范围歧义 | 中 | 若期望生成 prose 文本则必须是 Agent 步骤，不能是纯脚本 |
+| assemble 范围歧义 | 中 | 若期望生成 prose 文本则必须是 Agent 步骤，不能是纯脚本 |
 | QA 断言重写 | 中 | generate_qa_report.py ~1014 行需全面适配新 artifact 格式 |
 | history dedup 回归 | 中 | 新 dedup.py 需同时支持读取旧 report.md 和新 companion.json 历史格式 |
 
@@ -174,8 +174,7 @@ validate_report.py 有三部分逻辑：
   },
   "defaults": {
     "max": 50,
-    "detail_max": 3,
-    "detail_delay_ms": 1200
+    "detail_max": 3
   },
   "sources": [
     { "id": "<list_id>", "name": "AI Leaders", "max": 240, "detail_max": 5 }
@@ -421,9 +420,9 @@ Step 1: enrich.py（信息补充，脚本化）
   └── 最低覆盖率约束：highlight 条目若 primary_url_fetch 失败，标记为 degraded，validate_output.py 将其作为 blocking warning
   └── 工具失败：打印警告到 stderr，降级使用 companion.json 的 summary，fetch_status 记录为 degraded
 
-Step 2: assemble.py（Agent 步骤，结构化输入输出）
+Step 2: assemble（Agent 组装步骤，结构化输入输出）
   └── 输入：companion.json + enrichment.json
-  └── 输出：post.json（body 字段由 Agent 生成，非模板拼接）
+  └── 输出：post.json（item title 与 body 由 Agent 生成，非模板拼接）
   └── 脚本负责：收集结构化数据、校验字段完整性、格式化 post.json 结构、注入 frontmatter 元数据
     {
       "title": "动态标题【AI 资讯日报 2026-04-01】",
@@ -449,6 +448,7 @@ Step 2: assemble.py（Agent 步骤，结构化输入输出）
         }
       ]
     }
+  └── item title: 基于 companion + enrichment 重新组织语言，不能直接复用 companion 原题
   └── body: 高价值 3-4 段，普通 3+ 句
   └── body 整合所有信息
   └── metrics 口语化: "收到广泛关注" 而非 41188 likes
@@ -463,6 +463,7 @@ Step 4: validate_output.py（确定性校验）
   └── frontmatter 字段完整性
   └── category 分组正确
   └── item 数与 companion.json 一致
+  └── item title 不为空、非占位符，且不能与 companion 原题完全相同
   └── 无 markdown 残留
   └── highlight 条目 enrichment 覆盖率检查：primary_url_fetch 失败时 emit blocking warning
 ```
@@ -638,10 +639,10 @@ Step 4: generate_qa_report.py
 
 ## 跨阶段共享模块
 
-### _shared/x-news-shared/
+### src/x_news_shared/
 
 ```
-_shared/x-news-shared/
+src/x_news_shared/
 ├── __init__.py
 ├── schema.py           # JSON Schema 定义
 ├── normalize.py        # URL 规范化（从 x_news_common.py 提取）
@@ -664,17 +665,17 @@ _shared/x-news-shared/
 
 ### Phase 1 — Foundation（无 pipeline 影响）
 
-1. 创建 `_shared/x-news-shared/` 共享模块（normalize.py, schema.py, validate.py）
-2. 创建 `raw_validate.py`（x-news-data-pipeline/scripts/）
+1. 创建 `src/x_news_shared/` 共享模块（normalize.py, schema.py, validate.py）
+2. 创建 `raw_validate.py`（skills/x-news-data-pipeline/scripts/）
 3. 改造 `filter.py` 读 SOURCE_CONFIG 阈值（向后兼容，无配置时用硬编码默认值）
-4. 更新 x-news-data-pipeline/SKILL.md
+4. 更新 skills/x-news-data-pipeline/SKILL.md
 
 ### Phase 2 — Editorial 脚本化
 
 1. 创建 `dedup.py`（PRIOR_COMPANIONS 由编排层计算并传入，脚本只接收显式路径）
 2. 创建 `validate_companion.py`（从 validate_report.py 提取 companion 校验逻辑并重写）
 3. 扩大 companion.json schema（新增 title, description, report_date, categories[]）
-4. 更新 x-news-editorial/SKILL.md（去 report.md）
+4. 更新 skills/x-news-editorial/SKILL.md（去 report.md）
 5. 用真实历史数据测试 dedup.py 和 validate_companion.py
 
 ### Phase 3 — Daily-Post 脚本化
@@ -682,13 +683,13 @@ _shared/x-news-shared/
 1. 创建 `render_md.py`（纯模板渲染）
 2. 创建 `validate_output.py`（校验 post.json 完整性）
 3. 创建 `enrich.py`（subprocess 调用 twitter/gh/WebFetch，降级处理）
-4. Agent 步骤：assemble.py（body 由 Agent 生成）
-5. 更新 x-news-to-daily-post/SKILL.md（去 REPORT_PATH）
+4. Agent 步骤：assemble（body 由 Agent 生成，不对应仓库脚本文件）
+5. 更新 skills/x-news-to-daily-post/SKILL.md（去 REPORT_PATH）
 
 ### Phase 4 — 集成
 
 1. 串联各阶段，端到端测试
-2. 更新 x-news-tts/SKILL.md（读取源改为 post.json）
+2. 更新 skills/x-news-tts/SKILL.md（读取源改为 post.json）
 3. 更新 cron job / 编排层参数
 4. 验证无信息丢失、TTS 脚本正常生成
 
@@ -838,24 +839,24 @@ eval/
 ### 新建文件
 
 **共享模块（Phase 1）**：
-- `_shared/x-news-shared/{__init__.py, normalize.py, schema.py, validate.py}`
+- `src/x_news_shared/{__init__.py, normalize.py, schema.py, validate.py}`
 
 **data-pipeline（Phase 1）**：
-- `x-news-data-pipeline/scripts/raw_validate.py`
+- `skills/x-news-data-pipeline/scripts/raw_validate.py`
 
 **editorial（Phase 2）**：
-- `x-news-editorial/scripts/dedup.py`
-- `x-news-editorial/scripts/validate_companion.py`
+- `skills/x-news-editorial/scripts/dedup.py`
+- `skills/x-news-editorial/scripts/validate_companion.py`
 
 **daily-post（Phase 3）**：
-- `x-news-to-daily-post/scripts/render_md.py`
-- `x-news-to-daily-post/scripts/validate_output.py`
-- `x-news-to-daily-post/scripts/enrich.py`
+- `skills/x-news-to-daily-post/scripts/render_md.py`
+- `skills/x-news-to-daily-post/scripts/validate_output.py`
+- `skills/x-news-to-daily-post/scripts/enrich.py`
 
 **quality-audit（Phase 5）**：
-- `x-news-quality-audit/scripts/stage_json_validate.py`
-- `x-news-quality-audit/scripts/stage_contract.py`
-- `x-news-quality-audit/scripts/editorial_review.py`
+- `skills/x-news-quality-audit/scripts/stage_json_validate.py`
+- `skills/x-news-quality-audit/scripts/stage_contract.py`
+- `skills/x-news-quality-audit/scripts/editorial_review.py`
 
 **eval**：
 - `eval/README.md`
@@ -885,22 +886,22 @@ eval/
 
 ```bash
 # Phase 1-2 独立验证
-python3 x-news-data-pipeline/scripts/raw_validate.py --input eval/fixtures/2026-04-01/raw.json
-python3 x-news-data-pipeline/scripts/filter.py --config config/x-list-sources.json eval/fixtures/2026-04-01/raw.json
+python3 skills/x-news-data-pipeline/scripts/raw_validate.py --input eval/fixtures/2026-04-01/raw.json
+python3 skills/x-news-data-pipeline/scripts/filter.py --config config/x-list-sources.json eval/fixtures/2026-04-01/raw.json
 
-python3 x-news-editorial/scripts/dedup.py --filtered eval/fixtures/2026-04-01/filtered.json --prior-companions $DAILY_DIR/2026-03-30/companion.json $DAILY_DIR/2026-03-31/companion.json
-python3 x-news-editorial/scripts/validate_companion.py --companion eval/fixtures/2026-04-01/companion.json --filtered eval/fixtures/2026-04-01/filtered.json
+python3 skills/x-news-editorial/scripts/dedup.py --filtered eval/fixtures/2026-04-01/filtered.json --prior-companions $DAILY_DIR/2026-03-30/companion.json $DAILY_DIR/2026-03-31/companion.json
+python3 skills/x-news-editorial/scripts/validate_companion.py --companion eval/fixtures/2026-04-01/companion.json --filtered eval/fixtures/2026-04-01/filtered.json
 
 # Phase 3 独立验证
-python3 x-news-to-daily-post/scripts/render_md.py --input post.json --output post.md
-python3 x-news-to-daily-post/scripts/validate_output.py --post-json post.json --companion companion.json
+python3 skills/x-news-to-daily-post/scripts/render_md.py --input post.json --output post.md
+python3 skills/x-news-to-daily-post/scripts/validate_output.py --post-json post.json --companion companion.json
 
 # Phase 4 端到端
 uv run x-news run daily --date 2026-04-02 --json
 
 # Phase 5 QA
-python3 x-news-quality-audit/scripts/stage_json_validate.py --filtered filtered.json --companion companion.json --post post.json
-python3 x-news-quality-audit/scripts/stage_contract.py --filtered filtered.json --companion companion.json --post post.json
+python3 skills/x-news-quality-audit/scripts/stage_json_validate.py --filtered filtered.json --companion companion.json --post post.json
+python3 skills/x-news-quality-audit/scripts/stage_contract.py --filtered filtered.json --companion companion.json --post post.json
 ```
 
 ---
@@ -912,4 +913,3 @@ python3 x-news-quality-audit/scripts/stage_contract.py --filtered filtered.json 
 | `twitter` CLI | X API 抓取（x_list_fetch.py），另 enrich.py 通过 subprocess 调用 `twitter tweet` 获取详情 |
 | `gh` CLI | GitHub 元数据（enrich.py 通过 subprocess 调用 `gh repo view`）|
 | `edge-tts` | TTS 音频生成 |
-| `bun` | baoyu-markdown-to-html、baoyu-post-to-wechat |
