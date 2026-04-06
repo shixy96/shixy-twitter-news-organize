@@ -3,8 +3,6 @@
   "report_date": "2026-04-01",
   "description": "Full pipeline suite for 2026-04-01",
   "skills": {
-    "x-news-data-pipeline": "case-2026-04-01",
-    "x-news-editorial": "case-2026-04-01",
-    "x-news-to-daily-post": "case-2026-04-01"
+    "x-news-fetch": "case-2026-04-01"
   }
 }

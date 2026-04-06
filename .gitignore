@@ -50,3 +50,4 @@ eval/.cache/
 
 *.local
 *.local.*
+**/local/**

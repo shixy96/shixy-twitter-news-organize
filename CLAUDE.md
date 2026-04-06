@@ -4,21 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**x-news-skills** is a monorepo of 5 distributable pipeline skills that produce a daily AI news digest:
+**x-news-skills** is a monorepo of 3 distributable pipeline skills that produce a daily AI news digest:
 
 | Skill | Phase | Output |
 |-------|-------|--------|
-| `skills/x-news-data-pipeline` | 1 | `filtered.json` (engagement-filtered candidates) |
-| `skills/x-news-editorial` | 2 | `companion.json` (human-selected + categorized items) |
-| `skills/x-news-to-daily-post` | 3 | `post.md` (rendered daily post) |
-| `skills/x-news-tts` | 4 | `audio.mp3` (TTS朗读) |
-| `skills/x-news-quality-audit` | 5 | `qa-report.md` (bypass QA, non-blocking) |
+| `skills/x-news-fetch` | 1 | `filtered.json` (engagement-filtered candidates) |
+| `skills/x-news-digest` | 2 | `post.json` + `post.md` (curated daily post) |
+| `skills/x-news-tts` | 3 | `audio.mp3` (TTS朗读) |
 
-**Runtime state contract**: `RUN_ROOT/daily/{date}/`. Shared skill inputs are `RUN_ROOT` and `REPORT_DATE`. `RUN_LOG_PATH` defaults to `RUN_ROOT/daily/{date}/run.log.jsonl`, and `RUN_ID` is optional for traceability. A common local choice is `RUN_ROOT=state.local`, which is gitignored, but `state.local` is not part of the shared skill protocol.
+**Runtime state contract**: `RUN_ROOT/daily/{date}/`. Shared skill inputs are `RUN_ROOT` and `REPORT_DATE`. A common local choice is `RUN_ROOT=state.local`, which is gitignored.
 
 ## Pipeline Workflow
 
 Each skill has a `SKILL.md` that defines its interface. Run the full pipeline with `/run-pipeline`. For individual phases, read each skill's `SKILL.md` and run its scripts manually.
+
+The core skill is **x-news-digest**: it reads filtered.json, selects 8-12 items, enriches them with tools (twitter/gh/WebFetch), writes Chinese titles and body text, and outputs post.json + post.md. Editorial rules are in `skills/x-news-digest/reference/editorial-rules.md`.
 
 ## Code Style
 
@@ -40,26 +40,14 @@ Run `eval/` harness with `python3 eval/cli.py <command>`:
 - `eval benchmark --date YYYY-MM-DD` — multi-run aggregate metrics
 - `eval cases list` — list all cases and fixtures
 
-## Shared Module
-
-`src/x_news_shared/` provides:
-- `normalize.py` — URL normalization utilities
-- `runlog.py` — structured `run.log.jsonl` helpers
-- `schema.py` — JSON Schema for all pipeline artifacts + `ALLOWED_CATEGORIES`
-- `validate.py` — `validate_json_schema()` generic validator
-
-Import via: `from x_news_shared import normalize, schema, validate`
-
 ## Running the Pipeline
 
 ```bash
 RUN_ROOT="/path/to/runtime-root"
 REPORT_DATE="$(TZ=Asia/Shanghai date '+%Y-%m-%d')"
 DAILY_DIR="$RUN_ROOT/daily/$REPORT_DATE"
-RUN_ID="${RUN_ID:-run-${REPORT_DATE}-$(TZ=UTC date '+%H%M%SZ')}"
-RUN_LOG_PATH="$DAILY_DIR/run.log.jsonl"
 mkdir -p "$DAILY_DIR"
-export RUN_ROOT REPORT_DATE RUN_ID RUN_LOG_PATH
+export RUN_ROOT REPORT_DATE
 # ... follow SKILL.md for each phase; each skill derives its own internal paths from RUN_ROOT + REPORT_DATE
 ```
 

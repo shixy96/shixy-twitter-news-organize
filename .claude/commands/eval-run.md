@@ -1,13 +1,13 @@
 ---
 description: Run eval with control over stage, runs, and suites
-argument-hint: '--date YYYY-MM-DD [--stage pipeline|editorial|dailypost] [--runs N] | --suite <suite-id> [--runs N]'
+argument-hint: '--date YYYY-MM-DD [--stage fetch|digest] [--runs N] | --suite <suite-id> [--runs N]'
 ---
 
 Run evaluation with configurable parameters for skill development.
 
 ## Options
 - `--date YYYY-MM-DD`: Report date to evaluate
-- `--stage X`: Stage to run (pipeline, editorial, dailypost), default: editorial
+- `--stage X`: Stage to run (fetch, digest), default: digest
 - `--runs N`: Number of runs, default: 8 for statistical significance
 - `--suite <suite-id>`: Run a full suite instead (e.g., suite-2026-04-01)
 

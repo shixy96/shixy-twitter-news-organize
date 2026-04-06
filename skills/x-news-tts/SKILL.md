@@ -5,11 +5,11 @@ description: "将 AI 资讯日报转换为 TTS 朗读脚本并生成音频。"
 
 # TTS 朗读脚本生成
 
-将 `x-news-to-daily-post` 输出的 post.md 转换为 TTS 朗读脚本和音频。
+将 `x-news-digest` 输出的 post.json 转换为 TTS 朗读脚本和音频。
 
 ## 输入
 
-news-to-daily-post 生成的日报 markdown 文件，或直接的日报内容。
+x-news-digest 生成的 post.json（`$RUN_ROOT/daily/$REPORT_DATE/post.json`）。Agent 从 post.json 的 categories[].items[].title + body 提取内容生成脚本。
 
 ## 输出路径
 
