@@ -34,7 +34,16 @@ shixy-twitter-news-organize/
 ├── eval/                          # Eval harness
 │   ├── cases/                     # eval case 定义
 │   ├── fixtures/                  # 历史测试数据
+│   ├── eval_lib.py                # 评估函数库
+│   ├── live_runner.py             # 实时 digest 评估
 │   └── cli.py                     # eval CLI
+├── improve/                       # Auto-improve hill-climbing
+│   ├── loop.py                    # 主循环
+│   ├── judge.py                   # LLM-as-judge 评分
+│   ├── proposer.py                # 规则变更提议
+│   └── experiments.jsonl          # 实验记录
+├── tests/                         # 单元测试
+│   └── unit/                     # tests/unit/
 └── docs/
     └── pipeline-redesign.md       # 设计文档
 ```
@@ -67,6 +76,22 @@ eval diagnose --date 2026-04-01     # 诊断质量问题
 eval run --date 2026-04-01 --runs 8 # 8 次迭代
 eval benchmark --date 2026-04-01    # 多 run 聚合
 eval cases list                     # 列出所有 case
+eval live-digest --date 2026-04-06 --runs 8 --filtered /path/to/filtered.json  # 实时 digest 评估
+```
+
+## Auto-improve CLI
+
+```bash
+python3 improve/cli.py auto-improve --max-iters 10
+python3 improve/cli.py auto-improve --dates 2026-04-06 --max-iters 5 --runs-per-iter 3
+```
+
+评分：structural score (0-30) + LLM-as-judge editorial score (0-70) = composite 0-100。Pareto 改进则接受，否则丢弃。
+
+## 单元测试
+
+```bash
+python3 -m unittest discover tests/ -v
 ```
 
 ## 共享模块
