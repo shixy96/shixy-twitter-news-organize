@@ -22,7 +22,7 @@ def cmd_live_digest(args: argparse.Namespace) -> int:
         runs=args.runs,
         model=args.model,
         enrich=args.enrich,
-        filtered_path=args.filtered,
+        filtered_path=Path(args.filtered) if args.filtered else None,
     )
     if "error" in result:
         print(f"Error: {result['error']}", file=sys.stderr)

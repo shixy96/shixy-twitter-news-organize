@@ -89,6 +89,8 @@ def _validate_judge_output(data: dict) -> None:
     if not isinstance(data, dict):
         raise AttributeError(f"expected dict, got {type(data).__name__}")
     scores = data.get("scores", {})
+    if not isinstance(scores, dict):
+        scores = {}
     total = 0
     for dim in DIMENSIONS:
         if dim not in scores:

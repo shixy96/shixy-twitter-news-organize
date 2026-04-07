@@ -59,6 +59,21 @@ class TestValidateJudgeOutput(unittest.TestCase):
             _validate_judge_output(42)
         self.assertIn("expected dict", str(ctx.exception))
 
+    def test_scores_list_coerced_to_empty(self):
+        """scores as list should be treated as empty dict, not crash."""
+        data = {"scores": []}
+        _validate_judge_output(data)
+        # scores should be replaced with empty dict, then filled with DIMENSIONS
+        self.assertEqual(len(data["scores"]), 7)
+        self.assertEqual(data["total"], 0)
+
+    def test_scores_string_coerced_to_empty(self):
+        """scores as string should be treated as empty dict."""
+        data = {"scores": "invalid"}
+        _validate_judge_output(data)
+        self.assertEqual(len(data["scores"]), 7)
+        self.assertEqual(data["total"], 0)
+
     def test_missing_scores_dimensions_filled(self):
         """Missing dimension scores should be filled with zeros."""
         data = {"scores": {}}
