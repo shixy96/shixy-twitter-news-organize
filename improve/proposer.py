@@ -16,6 +16,7 @@ def propose_change(
     experiment_history: list[dict],
     judge_feedback: list[dict],
     model: str = "opus",
+    consolidate: bool = False,
 ) -> str:
     """Propose a new editorial-rules.md.
 
@@ -59,11 +60,19 @@ def propose_change(
                 parts.append(f"- Major issues: {'; '.join(issues)}")
             parts.append("")
 
-    parts.append(
+    instructions = (
         "## Instructions\n\n"
+        "IMPORTANT: The rules file has grown too large. "
+        "You MUST consolidate and shorten it — merge redundant rules, "
+        "remove low-value guidance, and keep the file concise.\n\n"
+        if consolidate
+        else "## Instructions\n\n"
+    )
+    instructions += (
         "Output the COMPLETE new editorial-rules.md content. "
         "No markdown fences, no explanation — just the file content."
     )
+    parts.append(instructions)
 
     user_prompt = "\n".join(parts)
 

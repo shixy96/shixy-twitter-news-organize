@@ -107,7 +107,7 @@ mkdir -p "$DAILY_DIR" "$MEDIA_DIR"
 ```json
 {
   "title": "{当日核心要点}【AI 资讯日报 {REPORT_DATE}】",
-  "description": "每日 AI 领域精选资讯",
+  "description": "每日 AI 领域精选资讯：{实际使用的分类列表}",
   "pubDate": "{REPORT_DATE}",
   "tags": ["AI", "资讯", "日报"],
   "slug": "ai-news-{REPORT_DATE}",

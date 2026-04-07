@@ -12,7 +12,6 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 IMPROVE_DIR = Path(__file__).resolve().parent
-EXPERIMENTS_LOG = IMPROVE_DIR / "experiments.jsonl"
 EDITORIAL_RULES = REPO_ROOT / "skills" / "x-news-digest" / "reference" / "editorial-rules.md"
 EVAL_DIR = REPO_ROOT / "eval"
 
@@ -40,6 +39,8 @@ def evaluate_candidate(
     runs_per_iter: int,
     digest_model: str,
     judge_model: str,
+    runs_dir: Path,
+    iter_num: int = 0,
 ) -> dict:
     """Evaluate current editorial-rules.md across all fixture dates.
 
@@ -59,8 +60,8 @@ def evaluate_candidate(
         date_feedback: list[dict] = []
 
         for i in range(runs_per_iter):
-            # Create temp run dir
-            run_dir = ensure_dir(IMPROVE_DIR / "tmp_runs" / date / f"run-{i + 1:03d}")
+            # Create temp run dir with iteration number to avoid collision
+            run_dir = ensure_dir(runs_dir / date / f"iter-{iter_num:03d}" / f"run-{i + 1:03d}")
             try:
                 metrics = run_single(date, run_dir, filtered_path, digest_model, False, i + 1)
             except Exception as e:
@@ -96,26 +97,11 @@ def evaluate_candidate(
 
         scores_by_date[date] = int(statistics.median(date_scores)) if date_scores else 0
 
-    # Clean up tmp_runs
-    _rmtree(IMPROVE_DIR / "tmp_runs")
-
     return {
         "scores_by_date": scores_by_date,
         "judge_feedback": all_judge_feedback,
         "any_fail": any_fail,
     }
-
-
-def _rmtree(p: Path) -> None:
-    """Remove directory tree (stdlib only)."""
-    if not p.exists():
-        return
-    for child in p.iterdir():
-        if child.is_dir():
-            _rmtree(child)
-        else:
-            child.unlink()
-    p.rmdir()
 
 
 def _git_commit_rules(message: str) -> str:
@@ -160,9 +146,9 @@ def _git_discard_rules() -> None:
     )
 
 
-def _log_experiment(entry: dict) -> None:
+def _log_experiment(entry: dict, experiments_log: Path) -> None:
     """Append experiment to JSONL log."""
-    with open(EXPERIMENTS_LOG, "a", encoding="utf-8") as f:
+    with open(experiments_log, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
@@ -197,7 +183,13 @@ def run_auto_improve(
     original_rules = EDITORIAL_RULES.read_text(encoding="utf-8")
     original_size = len(original_rules)
 
-    # Load experiment history
+    # Create timestamped run directory for this session
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    RUNS_DIR = IMPROVE_DIR / "tmp_runs" / timestamp
+    EXPERIMENTS_LOG = RUNS_DIR / "experiments.jsonl"
+    ensure_dir(RUNS_DIR)
+
+    # Per-run history (loaded from this session's experiments.jsonl, empty on first run)
     history: list[dict] = []
     if EXPERIMENTS_LOG.exists():
         for line in EXPERIMENTS_LOG.read_text(encoding="utf-8").splitlines():
@@ -211,7 +203,9 @@ def run_auto_improve(
 
     # Baseline evaluation
     print("[auto-improve] Evaluating baseline...")
-    baseline = evaluate_candidate(dates, runs_per_iter, digest_model, judge_model)
+    baseline = evaluate_candidate(
+        dates, runs_per_iter, digest_model, judge_model, RUNS_DIR, iter_num=0
+    )
     best_scores = baseline["scores_by_date"]
     print(f"[auto-improve] Baseline scores: {best_scores}")
 
@@ -229,14 +223,15 @@ def run_auto_improve(
         current_rules = EDITORIAL_RULES.read_text(encoding="utf-8")
 
         # Check size guard
-        if len(current_rules) > original_size * 2:
+        consolidate = len(current_rules) > original_size * 2
+        if consolidate:
             print("[auto-improve] Rules file too large, instructing proposer to consolidate")
 
         # Propose change
         print("[auto-improve] Proposing change...")
         try:
             new_rules = propose_change(
-                current_rules, history, baseline["judge_feedback"], proposer_model
+                current_rules, history, baseline["judge_feedback"], proposer_model, consolidate
             )
         except Exception as e:
             print(f"[auto-improve] Proposer failed: {e}")
@@ -247,7 +242,8 @@ def run_auto_improve(
                     "accepted": False,
                     "error": str(e),
                     "change_summary": "proposer_failed",
-                }
+                },
+                EXPERIMENTS_LOG,
             )
             history.append(
                 {"iter": iteration, "accepted": False, "change_summary": "proposer_failed"}
@@ -263,7 +259,9 @@ def run_auto_improve(
 
         # Evaluate
         print("[auto-improve] Evaluating...")
-        result = evaluate_candidate(dates, runs_per_iter, digest_model, judge_model)
+        result = evaluate_candidate(
+            dates, runs_per_iter, digest_model, judge_model, RUNS_DIR, iter_num=iteration
+        )
         new_scores = result["scores_by_date"]
         print(f"[auto-improve] New scores: {new_scores} (best: {best_scores})")
 
@@ -307,7 +305,7 @@ def run_auto_improve(
         if commit_hash is not None:
             entry["commit"] = commit_hash
 
-        _log_experiment(entry)
+        _log_experiment(entry, EXPERIMENTS_LOG)
         history.append(entry)
         print()
 

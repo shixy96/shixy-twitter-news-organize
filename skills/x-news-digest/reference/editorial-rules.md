@@ -88,9 +88,7 @@
 
 ## 历史去重
 
-在最终生成 `post.json` 前，检查编排层传入的最近 2 份历史 `post.json`。
-
-* 若同一 `_canonical_id`/`_canonical_url` 已被前一天或前两天覆盖，默认不再入选
+在最终生成 `post.json` 前，需要对backfill内容进行去重处理。
 
 * 只有在今天出现明显更强的聚合传播数据，或新增有效信息时，才允许作为 follow-up 再次入选
 
@@ -103,8 +101,6 @@
   * 作者自回复或当天讨论帖里的信息性图片/视频
 
   * 新 benchmark、新数据、新 release 说明
-
-* 历史命中不仅要看 `_canonical_id/_canonical_url`，也要结合 `_strong_links` / `_external_links` 判断是否其实是同一 paper/repo/release 的后续讨论
 
 * backfill 最多 1-2 条
 
@@ -304,8 +300,16 @@
 
 * 链接文本要具体：作者名 + 内容摘要，或 `GitHub: repo` / `arXiv: paper` / `Official: docs`；不要写「主链接/相关」
 
+* **正文中的第三方链接要求**：
+
+  * 论文/研究类条目：正文链接必须指向 arXiv/官方原文，**不得仅指向 Twitter 帖子**
+  * 模型/工具 release 类条目：正文链接必须指向 GitHub/官方文档，**不得仅指向 Twitter 帖子**
+  * 若 `_strong_links` 中已有第三方链接（如 GitHub、arXiv），确保正文将这些链接包含进去，而不只是 Twitter 链接
+
 * 单条最多保留 1 条 X 主链接 + 1-3 条最强第三方链接（`_strong_links`）；第一条链接必须是 X 主链接；第三方链接不得为空（当条目有 `_strong_links` 时）
 
 * 只能使用 item 自带的 `links`、`_strong_links`、`_external_links`、`_related_urls`，或通过 twitter-cli 补抓到的实际链接；不得臆造 URL
+
+* **短链接（如 t.co）必须通过 WebFetch 展开验证**，确认为有效页面后才可使用；不得仅凭猜测的 username/repo 构造 URL；展开后的最终 URL 必须与原链接指向同一内容，若展开后无法验证有效性，该链接应降为"参考"而非正文链接
 
 * 过滤掉广告跟踪、媒体二次报道、低信号聚合页；除非它本身就是官方首发页面
