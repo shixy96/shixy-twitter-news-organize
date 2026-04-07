@@ -62,7 +62,9 @@
 
 * 同一项目（如 OpenClaw）在当天报道中最多出现 **2 次**，无论以何种角度（版本更新、定价、社区讨论等）
 
-* 超出 2 次的内容必须合并到已有条目中，或直接丢弃
+* 超出 2 次时，必须合并到已有条目中（不同角度用分号串联）；不得以"不同角度"为借口拆分为独立条目
+
+* 合并后的条目，同一项目的多个角度只占用 1 次计数
 
 ### 合并 vs 独立判断决策树
 
@@ -242,11 +244,16 @@
 
 * 关键人物发布的重要内容
 
-* 行业重大事件（如重磅调查报告、重要人物专访）
+* **行业重大事件（重磅调查报告、重要人物专访、重要政策发布）**
 
 * 高影响力论文首发
 
-每天 1-5 条，不要滥用。**每日至少应有 1 条 highlight**，若无条目满足条件则不强制。
+* 重大产品/工具正式 release
+
+**强制要求**：
+- 每天 **至少 1 条 highlight**（若当天无符合条件条目则不强制）
+- 调查报告、人物专访类条目若满足上述条件，**必须标记为 highlight**
+- 不要滥用 highlight 标记；普通工具更新、日常版本迭代不应标记
 
 ***
 
@@ -276,9 +283,9 @@
 
 * 若 `_strong_links` 为空，但 `_external_links` 或 `links` 中存在明显 repo/paper/官方链接，也应补进来；不要只给第三方链接，也不要只给 X 链接
 
-* 只能使用 item 自带的 `links`、`_strong_links`、`_external_links`、`_related_urls`，或通过 twitter-cli 补抓到的实际链接；不得臆造 URL
+* **若高价值条目缺第三方链接**，必须读取 `~/.openclaw/skills/twitter-cli/SKILL.md` 后运行 `twitter tweet <tweet_id> --json` 补抓实际链接；补抓后若仍无 repo/arXiv/官方链接，需在正文中注明"原文链接待补"
 
-* 只有在条目已确定入选且确实缺关键第三方链接时，才允许读取 `~/.openclaw/skills/twitter-cli/SKILL.md` 后运行 `twitter tweet <tweet_id> --json` 或 `twitter tweet <tweet_url> --json` 补抓；不要对大批候选逐条补抓
+* 只能使用 item 自带的 `links`、`_strong_links`、`_external_links`、`_related_urls`，或通过 twitter-cli 补抓到的实际链接；不得臆造 URL
 
 * 过滤掉广告跟踪、媒体二次报道、低信号聚合页；除非它本身就是官方首发页面
 

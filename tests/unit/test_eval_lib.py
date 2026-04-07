@@ -214,6 +214,20 @@ class TestEvaluateDigest(unittest.TestCase):
         self.assertEqual(result["status"], "FAIL")
         self.assertIn("missing 'title'", result["errors"])
 
+    def test_missing_canonical_id_flagged(self):
+        """Item without canonical_id should be flagged and NOT use index as stable ID."""
+        post = self._valid_post()
+        # Remove canonical_id but keep index (the problematic fallback)
+        del post["categories"][0]["items"][0]["canonical_id"]
+        post["categories"][0]["items"][0]["index"] = 0
+        self._write_post(post)
+        result = evaluate_digest(self.artifacts_dir)
+        # Missing canonical_id should be a FAIL-level issue
+        issues = result["item_checks"][0]["issues"]
+        self.assertIn("missing_canonical_id", issues)
+        # selected_ids should NOT contain the numeric index as a pseudo-stable ID
+        self.assertNotIn("0", result["selected_ids"])
+
     def test_valid_post(self):
         post = self._valid_post()
         self._write_post(post)

@@ -112,11 +112,16 @@ def evaluate_digest(artifacts_dir: Path) -> dict:
 
     item_checks = []
     for item in items:
-        cid = str(item.get("canonical_id") or item.get("index", "?"))
+        cid = item.get("canonical_id")
+        issues = []
+        if not cid:
+            cid = "?"
+            issues.append("missing_canonical_id")
+        else:
+            cid = str(cid)
         selected_ids.append(cid)
         title = item.get("title", "")
         body = item.get("body", "")
-        issues = []
 
         # Title checks
         if not contains_cjk(title):
