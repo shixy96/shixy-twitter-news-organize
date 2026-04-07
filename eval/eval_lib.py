@@ -103,6 +103,10 @@ def evaluate_digest(artifacts_dir: Path) -> dict:
     items = []
     selected_ids = []
     for cat in categories:
+        if not isinstance(cat, dict):
+            errors.append(f"invalid category: not a dict")
+            status = "FAIL"
+            continue
         cat_name = cat.get("name", "")
         if cat_name not in ALLOWED_CATEGORIES:
             errors.append(f"invalid category: {cat_name}")
@@ -111,19 +115,27 @@ def evaluate_digest(artifacts_dir: Path) -> dict:
             items.append(item)
 
     item_checks = []
-    for item in items:
+    for idx, item in enumerate(items):
+        if not isinstance(item, dict):
+            issues = ["item_not_dict"]
+            cid = f"invalid-{idx}"
+            selected_ids.append(cid)
+            item_checks.append({"canonical_id": cid, "title": "", "issues": issues})
+            if status != "FAIL":
+                status = "FAIL"
+            continue
         cid = item.get("canonical_id")
         issues = []
         if not cid:
-            cid = "?"
+            cid = f"missing-{idx}"
             issues.append("missing_canonical_id")
         else:
             cid = str(cid)
         selected_ids.append(cid)
-        title = item.get("title", "")
-        body = item.get("body", "")
 
         # Title checks
+        title = item.get("title", "")
+        body = item.get("body", "")
         if not contains_cjk(title):
             issues.append("title_not_chinese")
         if len(title) > 50:
@@ -145,7 +157,14 @@ def evaluate_digest(artifacts_dir: Path) -> dict:
                 status = (
                     "FAIL"
                     if any(
-                        i in ("title_not_chinese", "body_not_chinese", "has_placeholder")
+                        i
+                        in (
+                            "title_not_chinese",
+                            "body_not_chinese",
+                            "has_placeholder",
+                            "item_not_dict",
+                            "missing_canonical_id",
+                        )
                         for i in issues
                     )
                     else "WARN"

@@ -228,6 +228,38 @@ class TestEvaluateDigest(unittest.TestCase):
         # selected_ids should NOT contain the numeric index as a pseudo-stable ID
         self.assertNotIn("0", result["selected_ids"])
 
+    def test_missing_canonical_id_no_aliasing(self):
+        """Multiple items missing canonical_id should not collapse to same ID."""
+        post = self._valid_post()
+        # Add a second item also missing canonical_id
+        post["categories"][0]["items"].append(
+            {
+                "title": "第二个标题",
+                "body": "这是第二个测试正文内容，需要足够长才能通过长度检查。本测试验证多个缺失 canonical_id 的项不会相互混淆。".ljust(
+                    100
+                ),
+                "link": "https://x.com/test/2",
+            }
+        )
+        del post["categories"][0]["items"][0]["canonical_id"]
+        self._write_post(post)
+        result = evaluate_digest(self.artifacts_dir)
+        # Each missing canonical_id should produce distinct placeholder IDs
+        selected = result["selected_ids"]
+        self.assertEqual(len(selected), 2)
+        # They should be distinct (not both "missing-0")
+        self.assertNotEqual(selected[0], selected[1])
+
+    def test_string_category_item_handled(self):
+        """String items in categories (malformed JSON) should not cause AttributeError."""
+        post = self._valid_post()
+        post["categories"][0]["items"] = ["not a dict"]
+        self._write_post(post)
+        result = evaluate_digest(self.artifacts_dir)
+        # Should return FAIL, not raise AttributeError
+        self.assertEqual(result["status"], "FAIL")
+        self.assertEqual(result["item_checks"][0]["issues"], ["item_not_dict"])
+
     def test_valid_post(self):
         post = self._valid_post()
         self._write_post(post)
