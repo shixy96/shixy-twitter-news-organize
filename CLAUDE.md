@@ -34,11 +34,7 @@ The core skill is **x-news-digest**: it reads filtered.json, selects 8-12 items,
 
 ## Eval Harness
 
-Run `eval/` harness with `python3 eval/cli.py <command>`:
-- `eval diagnose --date YYYY-MM-DD` — diagnose quality issues
-- `eval run --date YYYY-MM-DD` — full eval with 8 runs
-- `eval benchmark --date YYYY-MM-DD` — multi-run aggregate metrics
-- `eval cases list` — list all cases and fixtures
+Run `eval/` harness with `python3 eval/cli.py live-digest --date YYYY-MM-DD [--runs N] [--filtered /path/to/filtered.json]`.
 
 ## Auto-Improve
 

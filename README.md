@@ -32,8 +32,7 @@ shixy-twitter-news-organize/
 │   ├── schema.py                  # JSON Schema + 校验
 │   └── normalize.py               # URL 规范化
 ├── eval/                          # Eval harness
-│   ├── cases/                     # eval case 定义
-│   ├── fixtures/                  # 历史测试数据
+│   ├── fixtures/                  # 历史测试数据 (fixtures/{date}/filtered.json, post.json)
 │   ├── eval_lib.py                # 评估函数库
 │   ├── live_runner.py             # 实时 digest 评估
 │   └── cli.py                     # eval CLI
@@ -70,13 +69,7 @@ shixy-twitter-news-organize/
 ## Eval CLI
 
 ```bash
-python3 eval/cli.py <command>
-
-eval diagnose --date 2026-04-01     # 诊断质量问题
-eval run --date 2026-04-01 --runs 8 # 8 次迭代
-eval benchmark --date 2026-04-01    # 多 run 聚合
-eval cases list                     # 列出所有 case
-eval live-digest --date 2026-04-06 --runs 8 --filtered /path/to/filtered.json  # 实时 digest 评估
+python3 eval/cli.py live-digest --date 2026-04-06 --runs 8 --filtered /path/to/filtered.json
 ```
 
 ## Auto-improve CLI
