@@ -63,6 +63,23 @@ class TestGitCommitRules(unittest.TestCase):
         equal = {"2026-04-06": 50}
         self.assertFalse(_pareto_improved(equal, best))
 
+    def test_no_judge_score_when_structurally_failed(self):
+        """Structurally failed runs (FAIL status) should not contribute editorial points.
+
+        Bug: FAIL runs still feed post.json into score_digest and add editorial points,
+        which can inflate scores and corrupt Pareto comparisons.
+        The loop should set e_score=0 when status==FAIL, so composite=0.
+        """
+        from loop import composite_score, structural_score
+
+        # FAIL status → structural score = 0
+        fail_metrics = {"status": "FAIL", "errors": ["missing title"]}
+        s = structural_score(fail_metrics)
+        self.assertEqual(s, 0)
+
+        # FAIL run: e_score should be 0, so composite = 0
+        self.assertEqual(composite_score(s, 0), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

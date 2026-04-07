@@ -73,18 +73,20 @@ def evaluate_candidate(
             s_score = structural_score(metrics)
             if metrics.get("status") == "FAIL":
                 any_fail = True
-
-            # Read generated post.json for judge
-            artifacts_dir = run_dir / "results" / "artifacts"
-            post_path = artifacts_dir / "post.json"
-            if post_path.exists():
-                filtered_json = filtered_path.read_text(encoding="utf-8")
-                post_json = post_path.read_text(encoding="utf-8")
-                judge_result = score_digest(filtered_json, post_json, judge_model)
+                e_score = 0
+                judge_result = {"scores": {}, "total": 0, "major_issues": ["structurally failed"]}
             else:
-                judge_result = {"scores": {}, "total": 0, "major_issues": ["no post.json"]}
+                artifacts_dir = run_dir / "results" / "artifacts"
+                post_path = artifacts_dir / "post.json"
+                if post_path.exists():
+                    filtered_json = filtered_path.read_text(encoding="utf-8")
+                    post_json = post_path.read_text(encoding="utf-8")
+                    judge_result = score_digest(filtered_json, post_json, judge_model)
+                    e_score = judge_result.get("total", 0)
+                else:
+                    e_score = 0
+                    judge_result = {"scores": {}, "total": 0, "major_issues": ["no post.json"]}
 
-            e_score = judge_result.get("total", 0)
             c_score = composite_score(s_score, e_score)
             date_scores.append(c_score)
             date_feedback.append(judge_result)

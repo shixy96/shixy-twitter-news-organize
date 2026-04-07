@@ -74,7 +74,14 @@ def score_digest(
         _validate_judge_output(data)
         return data
 
-    except (json.JSONDecodeError, subprocess.TimeoutExpired, KeyError, AttributeError) as e:
+    except (
+        json.JSONDecodeError,
+        subprocess.TimeoutExpired,
+        subprocess.CalledProcessError,
+        KeyError,
+        AttributeError,
+        FileNotFoundError,
+    ) as e:
         return {
             "scores": {d: {"score": 0, "reason": "judge error"} for d in DIMENSIONS},
             "total": 0,
