@@ -1,9 +1,0 @@
-{
-  "id": "suite-2026-04-02",
-  "report_date": "2026-04-02",
-  "description": "Full pipeline suite for 2026-04-02",
-  "skills": {
-    "x-news-fetch": "case-2026-04-02",
-    "x-news-digest": "case-2026-04-02"
-  }
-}

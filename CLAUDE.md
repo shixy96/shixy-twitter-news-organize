@@ -40,6 +40,21 @@ Run `eval/` harness with `python3 eval/cli.py <command>`:
 - `eval benchmark --date YYYY-MM-DD` — multi-run aggregate metrics
 - `eval cases list` — list all cases and fixtures
 
+## Auto-Improve
+
+Hill-climbing optimizer that iteratively improves `editorial-rules.md` using LLM-as-judge feedback. Inspired by [autoresearch](https://github.com/karpathy/autoresearch).
+
+```bash
+python3 improve/cli.py auto-improve --max-iters 10
+python3 improve/cli.py auto-improve --dates 2026-04-06 --max-iters 5 --runs-per-iter 2
+```
+
+Or use `/auto-improve` slash command. See `improve/` directory for details.
+
+- **Scoring**: structural (0-30, from eval_lib) + LLM-as-judge editorial quality (0-70, 7 dimensions) = composite 0-100
+- **Loop**: propose rules change → run digest × N → judge → keep if Pareto-improved across all fixtures, discard otherwise
+- **Tracking**: accepted changes committed to git, all experiments logged to `improve/experiments.jsonl`
+
 ## Running the Pipeline
 
 ```bash

@@ -2,17 +2,13 @@
 """
 Eval library for x-news-skills.
 
-Provides fixture-based evaluation and benchmark aggregation for:
-- x-news-fetch: validates filtered.json structure
-- x-news-digest: validates post.json quality (Chinese titles, body length, categories)
+Provides evaluation and benchmark aggregation for x-news-digest.
 """
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
-import shutil
 import uuid
 from datetime import datetime
 from itertools import combinations
@@ -52,14 +48,6 @@ def load_json(p: Path) -> Any:
     return json.loads(p.read_text(encoding="utf-8"))
 
 
-def sha256_file(p: Path) -> str:
-    h = hashlib.sha256()
-    with p.open("rb") as f:
-        for chunk in iter(lambda: f.read(65536), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
 def short_id() -> str:
     return uuid.uuid4().hex[:6]
 
@@ -81,124 +69,6 @@ def pairwise_jaccard(sets: list[set[str]]) -> float | None:
         if union:
             scores.append(len(a & b) / len(union))
     return sum(scores) / len(scores) if scores else None
-
-
-# ---------------------------------------------------------------------------
-# Invocation management
-# ---------------------------------------------------------------------------
-
-
-def create_invocation_dir(report_date: str, mode: str) -> Path:
-    run_root = ensure_dir(EVAL_RUNS_ROOT / report_date)
-    while True:
-        name = f"{timestamp_token()}-{mode}-{short_id()}"
-        d = run_root / name
-        if not d.exists():
-            ensure_dir(d / "results")
-            return d
-
-
-def resolve_fixture_path(value: str) -> Path:
-    p = Path(value)
-    return p if p.is_absolute() else (REPO_ROOT / value).resolve()
-
-
-def stage_fixtures(case: dict, artifacts_dir: Path) -> None:
-    for target, source in (case.get("artifacts") or {}).items():
-        src = resolve_fixture_path(source)
-        if not src.exists():
-            raise FileNotFoundError(f"fixture missing: {source}")
-        ensure_dir(artifacts_dir.parent)
-        if src.is_dir():
-            if (artifacts_dir / target).exists():
-                shutil.rmtree(artifacts_dir / target)
-            shutil.copytree(src, artifacts_dir / target)
-        else:
-            ensure_dir((artifacts_dir / target).parent)
-            shutil.copy2(src, artifacts_dir / target)
-
-
-# ---------------------------------------------------------------------------
-# Case loading
-# ---------------------------------------------------------------------------
-
-
-def load_case(skill: str, case_id: str) -> dict:
-    return load_json(EVAL_ROOT / "cases" / skill / f"{case_id}.json")
-
-
-def load_suite(suite_id: str) -> dict:
-    return load_json(EVAL_ROOT / "cases" / "suites" / f"{suite_id}.json")
-
-
-def list_skill_cases(skill: str) -> list[dict]:
-    d = EVAL_ROOT / "cases" / skill
-    if not d.exists():
-        return []
-    cases = []
-    for p in d.glob("*.json"):
-        try:
-            cases.append(load_json(p))
-        except (json.JSONDecodeError, FileNotFoundError):
-            pass
-    return sorted(cases, key=lambda c: c.get("report_date", ""))
-
-
-def list_suites() -> list[dict]:
-    d = EVAL_ROOT / "cases" / "suites"
-    if not d.exists():
-        return []
-    suites = []
-    for p in d.glob("*.json"):
-        try:
-            suites.append(load_json(p))
-        except (json.JSONDecodeError, FileNotFoundError):
-            pass
-    return sorted(suites, key=lambda s: s.get("report_date", ""))
-
-
-# ---------------------------------------------------------------------------
-# Evaluate: x-news-fetch
-# ---------------------------------------------------------------------------
-
-
-def evaluate_fetch(artifacts_dir: Path) -> dict:
-    """Validate filtered.json structure."""
-    filtered_path = artifacts_dir / "filtered.json"
-    errors, status = [], "PASS"
-
-    if not filtered_path.exists():
-        return {"skill": "x-news-fetch", "status": "FAIL", "errors": ["filtered.json missing"]}
-
-    try:
-        data = load_json(filtered_path)
-    except json.JSONDecodeError as e:
-        return {"skill": "x-news-fetch", "status": "FAIL", "errors": [f"invalid JSON: {e}"]}
-
-    if not isinstance(data, dict):
-        return {"skill": "x-news-fetch", "status": "FAIL", "errors": ["not an object"]}
-
-    for key in ("stats", "strong", "medium", "backfill"):
-        if key not in data:
-            errors.append(f"missing '{key}'")
-            status = "FAIL"
-
-    candidate_ids = []
-    for bucket in ("strong", "medium", "backfill"):
-        for item in data.get(bucket, []):
-            cid = item.get("_canonical_id") or item.get("id")
-            if cid:
-                candidate_ids.append(str(cid))
-
-    return {
-        "skill": "x-news-fetch",
-        "status": status,
-        "errors": errors,
-        "stats": data.get("stats", {}),
-        "candidate_ids": candidate_ids,
-        "candidate_count": len(candidate_ids),
-        "sha256": sha256_file(filtered_path),
-    }
 
 
 # ---------------------------------------------------------------------------
@@ -313,29 +183,32 @@ def build_benchmark(skill: str, case: dict, metrics_list: list[dict]) -> dict:
         "fail_count": statuses.count("FAIL"),
     }
 
-    if skill == "x-news-fetch":
-        candidate_sets = [set(m.get("candidate_ids", [])) for m in metrics_list]
-        bench["avg_pairwise_jaccard"] = pairwise_jaccard(candidate_sets)
-    elif skill == "x-news-digest":
+    if skill == "x-news-digest":
         selected_sets = [set(m.get("selected_ids", [])) for m in metrics_list]
         bench["avg_pairwise_jaccard"] = pairwise_jaccard(selected_sets)
+
+        # Digest-specific metrics
+        from collections import Counter
+
+        item_counts = [m.get("item_count", 0) for m in metrics_list]
+        bench["item_count_mean"] = _mean(item_counts)
+        bench["item_count_std"] = _std(item_counts)
+
+        all_ids = []
+        for m in metrics_list:
+            all_ids.extend(m.get("selected_ids", []))
+        bench["selection_frequency"] = dict(Counter(all_ids))
 
     return bench
 
 
-# ---------------------------------------------------------------------------
-# Rendering
-# ---------------------------------------------------------------------------
+def _mean(values: list[float]) -> float:
+    return sum(values) / len(values) if values else 0.0
 
 
-def render_suite_report_markdown(report: dict) -> str:
-    lines = [
-        "# X News Eval Suite Report",
-        "",
-        f"- Overall: `{report['overall_status']}`",
-        "",
-        "## Skills",
-    ]
-    for row in report.get("skills", []):
-        lines.append(f"- `{row['skill']}`: `{row['status']}`")
-    return "\n".join(lines) + "\n"
+def _std(values: list[float]) -> float:
+    if len(values) < 2:
+        return 0.0
+    m = _mean(values)
+    variance = sum((x - m) ** 2 for x in values) / (len(values) - 1)
+    return variance**0.5

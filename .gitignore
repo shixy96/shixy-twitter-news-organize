@@ -1,6 +1,8 @@
 # Python
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
 *$py.class
 *.so
 .Python
@@ -26,6 +28,12 @@ venv/
 ENV/
 env/
 
+# Test and lint caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
 # macOS
 .DS_Store
 .AppleDouble
@@ -44,9 +52,14 @@ Icon
 eval/runs/
 eval/.cache/
 
+# Auto-improve runtime output
+improve/experiments.jsonl
+improve/tmp_runs/
+
 # Temporary files
 *.tmp
 *.log
+tmp/
 
 *.local
 *.local.*

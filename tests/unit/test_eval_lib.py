@@ -1,0 +1,238 @@
+#!/usr/bin/env python3
+"""Unit tests for eval/eval_lib.py."""
+
+import json
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+sys_path_root = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(sys_path_root))
+
+from eval.eval_lib import (
+    ALLOWED_CATEGORIES,
+    _mean,
+    _std,
+    build_benchmark,
+    contains_cjk,
+    evaluate_digest,
+    pairwise_jaccard,
+)
+
+
+class TestContainsCjk(unittest.TestCase):
+    def test_chinese(self):
+        self.assertTrue(contains_cjk("你好世界"))
+
+    def test_english(self):
+        self.assertFalse(contains_cjk("hello world"))
+
+    def test_mixed(self):
+        self.assertTrue(contains_cjk("hello你好world"))
+
+    def test_empty(self):
+        self.assertFalse(contains_cjk(""))
+
+    def test_none_input(self):
+        self.assertFalse(contains_cjk(None))
+
+    def test_japanese(self):
+        self.assertTrue(contains_cjk("日本語"))
+
+    def test_korean(self):
+        # Korean Hangul is not in the CJK Unified Ideographs range (U+4E00-U+9FFF)
+        self.assertFalse(contains_cjk("한글"))
+
+
+class TestPairwiseJaccard(unittest.TestCase):
+    def test_identical_sets(self):
+        result = pairwise_jaccard([{"a", "b"}, {"a", "b"}])
+        self.assertAlmostEqual(result, 1.0)
+
+    def test_disjoint_sets(self):
+        result = pairwise_jaccard([{"a"}, {"b"}])
+        self.assertAlmostEqual(result, 0.0)
+
+    def test_partial_overlap(self):
+        result = pairwise_jaccard([{"a", "b"}, {"b", "c"}])
+        self.assertAlmostEqual(result, 1.0 / 3.0)
+
+    def test_single_set(self):
+        self.assertIsNone(pairwise_jaccard([{"a"}]))
+
+    def test_empty_list(self):
+        self.assertIsNone(pairwise_jaccard([]))
+
+    def test_three_sets(self):
+        result = pairwise_jaccard([{"a", "b"}, {"b", "c"}, {"c", "d"}])
+        # pairs: (ab,bc)=1/3, (ab,cd)=0, (bc,cd)=1/3
+        expected = (1.0 / 3.0 + 0.0 + 1.0 / 3.0) / 3.0
+        self.assertAlmostEqual(result, expected)
+
+
+class TestMeanStd(unittest.TestCase):
+    def test_mean_basic(self):
+        self.assertAlmostEqual(_mean([1.0, 2.0, 3.0]), 2.0)
+
+    def test_mean_single(self):
+        self.assertAlmostEqual(_mean([42.0]), 42.0)
+
+    def test_mean_empty(self):
+        self.assertAlmostEqual(_mean([]), 0.0)
+
+    def test_std_basic(self):
+        # Sample std dev using n-1 denominator (Bessel's correction)
+        result = _std([2.0, 4.0, 4.0, 4.0, 5.0, 5.0, 7.0, 9.0])
+        self.assertAlmostEqual(result, 2.138, places=3)
+
+    def test_std_single(self):
+        self.assertEqual(_std([42.0]), 0.0)
+
+    def test_std_empty(self):
+        self.assertEqual(_std([]), 0.0)
+
+
+class TestEvaluateDigest(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.mkdtemp()
+        self.artifacts_dir = Path(self.temp_dir)
+
+    def tearDown(self):
+        import shutil
+
+        shutil.rmtree(self.temp_dir)
+
+    def _write_post(self, post_data):
+        post_path = self.artifacts_dir / "post.json"
+        with open(post_path, "w", encoding="utf-8") as f:
+            json.dump(post_data, f, ensure_ascii=False, indent=2)
+        return post_path
+
+    def _valid_post(self):
+        return {
+            "title": "AI 资讯日报",
+            "description": "每日 AI 领域精选资讯",
+            "pubDate": "2026-04-06",
+            "tags": ["AI"],
+            "slug": "ai-news-2026-04-06",
+            "categories": [
+                {
+                    "name": "模型发布",
+                    "items": [
+                        {
+                            "canonical_id": "id-001",
+                            "title": "测试标题",
+                            "link": "https://x.com/test/1",
+                            "body": "这是测试正文内容，包含足够长的中文文本以满足长度要求。本测试数据用于验证评估函数的各项检查逻辑是否正常工作，确保能够正确识别和处理各种边界情况。".ljust(
+                                100
+                            ),
+                        }
+                    ],
+                }
+            ],
+        }
+
+    def test_missing_post_json(self):
+        result = evaluate_digest(self.artifacts_dir)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertIn("post.json missing", result["errors"])
+
+    def test_invalid_json(self):
+        post_path = self.artifacts_dir / "post.json"
+        post_path.write_text("not json", encoding="utf-8")
+        result = evaluate_digest(self.artifacts_dir)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertTrue(any("invalid JSON" in e for e in result["errors"]))
+
+    def test_not_object(self):
+        post_path = self.artifacts_dir / "post.json"
+        post_path.write_text("[1,2,3]", encoding="utf-8")
+        result = evaluate_digest(self.artifacts_dir)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertIn("not an object", result["errors"])
+
+    def test_missing_frontmatter_field(self):
+        post = self._valid_post()
+        del post["title"]
+        self._write_post(post)
+        result = evaluate_digest(self.artifacts_dir)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertIn("missing 'title'", result["errors"])
+
+    def test_invalid_category(self):
+        post = self._valid_post()
+        post["categories"][0]["name"] = "非法分类"
+        self._write_post(post)
+        result = evaluate_digest(self.artifacts_dir)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertIn("invalid category: 非法分类", result["errors"])
+
+    def test_title_not_chinese(self):
+        post = self._valid_post()
+        post["categories"][0]["items"][0]["title"] = "English Only"
+        self._write_post(post)
+        result = evaluate_digest(self.artifacts_dir)
+        self.assertEqual(result["status"], "FAIL")
+        issues = result["item_checks"][0]["issues"]
+        self.assertIn("title_not_chinese", issues)
+
+    def test_title_too_long(self):
+        post = self._valid_post()
+        post["categories"][0]["items"][0]["title"] = "这" * 55  # exceeds 50 char limit
+        self._write_post(post)
+        result = evaluate_digest(self.artifacts_dir)
+        self.assertEqual(result["status"], "WARN")
+        issues = result["item_checks"][0]["issues"]
+        self.assertIn("title_too_long", issues)
+
+    def test_body_too_short(self):
+        post = self._valid_post()
+        post["categories"][0]["items"][0]["body"] = "短"
+        self._write_post(post)
+        result = evaluate_digest(self.artifacts_dir)
+        self.assertEqual(result["status"], "WARN")
+        issues = result["item_checks"][0]["issues"]
+        self.assertIn("body_too_short", issues)
+
+    def test_has_placeholder(self):
+        post = self._valid_post()
+        post["categories"][0]["items"][0]["body"] = "TODO: 待补充内容，需要填写完整信息。"
+        self._write_post(post)
+        result = evaluate_digest(self.artifacts_dir)
+        self.assertEqual(result["status"], "FAIL")
+        issues = result["item_checks"][0]["issues"]
+        self.assertIn("has_placeholder", issues)
+
+    def test_valid_post(self):
+        post = self._valid_post()
+        self._write_post(post)
+        result = evaluate_digest(self.artifacts_dir)
+        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["item_count"], 1)
+
+    def test_item_count_warn_too_few(self):
+        post = self._valid_post()
+        self._write_post(post)
+        result = evaluate_digest(self.artifacts_dir)
+        self.assertEqual(result["status"], "PASS")
+        self.assertIn("only 1 items", result["warnings"][0])
+
+
+class TestBuildBenchmark(unittest.TestCase):
+    def test_basic(self):
+        case = {"id": "test-case", "report_date": "2026-04-06"}
+        metrics = [
+            {"status": "PASS", "selected_ids": ["a", "b"]},
+            {"status": "PASS", "selected_ids": ["a", "b"]},
+        ]
+        result = build_benchmark("x-news-digest", case, metrics)
+        self.assertEqual(result["skill"], "x-news-digest")
+        self.assertEqual(result["case_id"], "test-case")
+        self.assertEqual(result["runs"], 2)
+        self.assertEqual(result["pass_count"], 2)
+        self.assertEqual(result["fail_count"], 0)
+
+
+if __name__ == "__main__":
+    unittest.main()
