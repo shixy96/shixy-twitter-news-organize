@@ -67,7 +67,9 @@ def evaluate_candidate(
                 metrics = {"status": "FAIL", "errors": [str(e)]}
                 any_fail = True
                 date_scores.append(0)
-                date_feedback.append({"scores": {}, "total": 0, "major_issues": [str(e)]})
+                judge_result = {"scores": {}, "total": 0, "major_issues": [str(e)]}
+                date_feedback.append(judge_result)
+                all_judge_feedback.append(judge_result)
                 continue
 
             s_score = structural_score(metrics)

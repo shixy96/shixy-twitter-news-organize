@@ -244,9 +244,16 @@
 | 调查报告/人物专访 | 原文链接 | 非论文形式的长篇报道必须有原始出处 |
 | 重大产品/工具 release | 官方 docs/blog/release 链接 | 需提供官方资料供读者深入了解 |
 
-**补链流程**：若高价值条目缺第三方链接，必须读取 `~/.openclaw/skills/twitter-cli/SKILL.md` 后运行 `twitter tweet <tweet_id> --json` 补抓实际链接。补抓后若仍无 repo/arXiv/官方链接，需在正文中注明"原文链接待补"，或降为补充链接处理。
+**补链流程（必须执行）**：
 
-**禁止**：仅依赖 Twitter/X 源链接承载高价值内容；不得为回避链接要求而降低高质量条目为纯观点类条目。
+1. 若高价值条目缺第三方链接，读取 `~/.openclaw/skills/twitter-cli/SKILL.md`
+2. 运行 `twitter tweet <tweet_id> --json` 补抓实际链接
+3. 补抓后若仍无 repo/arXiv/官方链接：
+   - 论文/研究报告类 → **排除**，不降为 related_links
+   - 调查报告/专访类 → 在正文中注明"原文链接待补"，仍可保留
+   - 重大产品 release → 在正文中注明"官方文档待补"，仍可保留
+
+**禁止**：仅依赖 Twitter/X 源链接承载高价值内容；不得为回避链接要求而将论文/research 类条目伪装为纯观点类条目。
 
 ### 重点标注
 

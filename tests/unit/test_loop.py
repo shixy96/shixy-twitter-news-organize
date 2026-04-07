@@ -80,6 +80,43 @@ class TestGitCommitRules(unittest.TestCase):
         # FAIL run: e_score should be 0, so composite = 0
         self.assertEqual(composite_score(s, 0), 0)
 
+    @patch("loop.run_single")
+    def test_exception_feedback_included_in_judge_feedback(self, mock_run):
+        """Exception-run feedback should be included in all_judge_feedback."""
+        import loop as loop_module
+        import tempfile
+        import shutil
+
+        old_eval_dir = loop_module.EVAL_DIR
+        old_exp_log = loop_module.EXPERIMENTS_LOG
+
+        tmpdir = Path(tempfile.mkdtemp())
+        fixtures_dir = tmpdir / "fixtures" / "2026-04-06"
+        fixtures_dir.mkdir(parents=True)
+        (fixtures_dir / "filtered.json").write_text("[]", encoding="utf-8")
+        exp_log = tmpdir / "experiments.jsonl"
+        exp_log.touch()
+
+        loop_module.EVAL_DIR = tmpdir
+        loop_module.EXPERIMENTS_LOG = exp_log
+        mock_run.side_effect = RuntimeError("crash")
+
+        with patch.object(loop_module, "propose_change", MagicMock(return_value="# unchanged")):
+            result = loop_module.evaluate_candidate(
+                dates=["2026-04-06"],
+                runs_per_iter=1,
+                digest_model="sonnet",
+                judge_model="opus",
+            )
+
+        feedback = result["judge_feedback"]
+        self.assertEqual(len(feedback), 1)
+        self.assertTrue(any("crash" in "".join(f.get("major_issues", [])) for f in feedback))
+
+        loop_module.EVAL_DIR = old_eval_dir
+        loop_module.EXPERIMENTS_LOG = old_exp_log
+        shutil.rmtree(tmpdir)
+
 
 if __name__ == "__main__":
     unittest.main()
