@@ -55,6 +55,14 @@ class TestGitCommitRules(unittest.TestCase):
         self.assertEqual(len(commit_calls), 1)
         self.assertEqual(result, "abc1234")
 
+    def test_pareto_improved_false_when_scores_equal(self):
+        """_pareto_improved should return False when new_scores == best_scores."""
+        from loop import _pareto_improved
+
+        best = {"2026-04-06": 50}
+        equal = {"2026-04-06": 50}
+        self.assertFalse(_pareto_improved(equal, best))
+
 
 if __name__ == "__main__":
     unittest.main()

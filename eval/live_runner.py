@@ -219,6 +219,8 @@ def run_single(
             )
         except subprocess.TimeoutExpired:
             pass  # render failure is non-fatal
+        except subprocess.CalledProcessError:
+            pass  # render failure is non-fatal
 
         # Evaluate
         metrics = evaluate_digest(artifacts_dir)

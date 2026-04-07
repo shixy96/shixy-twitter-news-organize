@@ -287,7 +287,8 @@ def run_auto_improve(
             commit_msg = f"improve: iter {iteration} — {change_summary}"
             commit_hash = _git_commit_rules(commit_msg)
             entry["commit"] = commit_hash
-            best_scores = new_scores
+            if commit_hash != "no-change":
+                best_scores = new_scores
             accepted_count += 1
             # Update judge feedback for next iteration
             baseline = result
