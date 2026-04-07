@@ -1,0 +1,26 @@
+{
+  "title": "AI 资讯日报 2026-04-06",
+  "description": "每日 AI 领域精选资讯",
+  "pubDate": "2026-04-06",
+  "tags": ["AI", "资讯"],
+  "slug": "ai-news-2026-04-06",
+  "categories": [
+    {
+      "name": "模型发布",
+      "items": [
+        {
+          "index": 1,
+          "canonical_id": "id-001",
+          "title": "新模型发布测试",
+          "link": "https://x.com/test/status/1",
+          "body": "第一段内容。\n\n第二段内容。",
+          "media": ["https://example.com/image.jpg"],
+          "related_links": [
+            {"text": "相关链接", "url": "https://example.com"}
+          ],
+          "is_highlight": false
+        }
+      ]
+    }
+  ]
+}

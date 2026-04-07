@@ -1,0 +1,44 @@
+[
+  {
+    "id": "1001",
+    "url": "https://x.com/user1/status/1001",
+    "author": "@user1 (Alice)",
+    "time": "2026-04-06T10:00:00+00:00",
+    "text": "Great news about AI! Check this out https://github.com/test/repo",
+    "likes": 500,
+    "views": 10000,
+    "retweets": 50,
+    "replies": 10,
+    "quotes": 5,
+    "bookmarks": 100,
+    "source": "AI News"
+  },
+  {
+    "id": "1002",
+    "url": "https://x.com/user2/status/1002",
+    "author": "@user2 (Bob)",
+    "time": "2026-04-06T11:00:00+00:00",
+    "text": "Another tweet https://arxiv.org/abs/test",
+    "likes": 300,
+    "views": 8000,
+    "retweets": 30,
+    "replies": 5,
+    "quotes": 3,
+    "bookmarks": 60,
+    "source": "AI News"
+  },
+  {
+    "id": "1003",
+    "url": "https://x.com/user3/status/1003",
+    "author": "@user3 (Charlie)",
+    "time": "2026-04-05T10:00:00+00:00",
+    "text": "Old tweet but interesting https://huggingface.co/test",
+    "likes": 100,
+    "views": 5000,
+    "retweets": 10,
+    "replies": 2,
+    "quotes": 1,
+    "bookmarks": 20,
+    "source": "AI News"
+  }
+]

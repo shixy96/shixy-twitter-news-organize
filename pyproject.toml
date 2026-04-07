@@ -1,0 +1,17 @@
+[project]
+name = "shixy-twitter-news-organize"
+version = "0.1.0"
+description = "x-news AI digest pipeline skills"
+requires-python = ">=3.10"
+dependencies = [
+    "edge-tts>=6.0.0",
+]
+
+[tool.ruff]
+line-length = 100
+indent-width = 4
+exclude = ["_shared/**", "uv.lock"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+ignore = ["E501"]

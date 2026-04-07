@@ -1,0 +1,41 @@
+{
+  "title": "AI 资讯日报 2026-04-06",
+  "description": "每日 AI 领域精选资讯",
+  "pubDate": "2026-04-06",
+  "tags": ["AI", "资讯"],
+  "slug": "ai-news-2026-04-06",
+  "categories": [
+    {
+      "name": "模型发布",
+      "items": [
+        {
+          "index": 1,
+          "canonical_id": "id-001",
+          "title": "新模型发布测试",
+          "link": "https://x.com/test/status/1",
+          "body": "这是一个测试内容，包含足够长的中文文本以满足身体要求。用于验证评估逻辑正常工作。测试数据需要至少80个字符。",
+          "media": [],
+          "related_links": [
+            {"text": "相关链接", "url": "https://example.com"}
+          ],
+          "is_highlight": false
+        }
+      ]
+    },
+    {
+      "name": "开发生态",
+      "items": [
+        {
+          "index": 2,
+          "canonical_id": "id-002",
+          "title": "开发者工具更新",
+          "link": "https://x.com/test/status/2",
+          "body": "这是一个更长的测试内容，用于验证评估函数能够正确处理多个分类和多个条目。确保数据格式正确。",
+          "media": [],
+          "related_links": [],
+          "is_highlight": false
+        }
+      ]
+    }
+  ]
+}
