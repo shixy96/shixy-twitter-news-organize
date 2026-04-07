@@ -234,6 +234,20 @@
 
 * 正文必须包含"why it matters"框架：解释为什么这条值得读者关注
 
+### 高价值条目第三方链接要求
+
+以下类型条目**必须包含**对应第三方链接，否则不得作为独立条目入选（可降为补充链接）：
+
+| 条目类型 | 必须包含的第三方链接 | 说明 |
+| -------- | ------------------- | ---- |
+| 论文/研究 | arXiv 或原文链接 | 学术类内容必须可溯源 |
+| 调查报告/人物专访 | 原文链接 | 非论文形式的长篇报道必须有原始出处 |
+| 重大产品/工具 release | 官方 docs/blog/release 链接 | 需提供官方资料供读者深入了解 |
+
+**补链流程**：若高价值条目缺第三方链接，必须读取 `~/.openclaw/skills/twitter-cli/SKILL.md` 后运行 `twitter tweet <tweet_id> --json` 补抓实际链接。补抓后若仍无 repo/arXiv/官方链接，需在正文中注明"原文链接待补"，或降为补充链接处理。
+
+**禁止**：仅依赖 Twitter/X 源链接承载高价值内容；不得为回避链接要求而降低高质量条目为纯观点类条目。
+
 ### 重点标注
 
 对以下 item 标记 `is_highlight=true`。触发条件（满足任一即可）：
@@ -275,20 +289,10 @@
 
   * 第三方链接优先级：GitHub/release > arXiv/paper > HuggingFace/model/demo > 官方 docs/blog/changelog/release > 其他高质量原始资料
 
-* **高价值条目必须包含第三方链接**：
+* 链接文本要具体：作者名 + 内容摘要，或 `GitHub: repo` / `arXiv: paper` / `Official: docs`；不要写「主链接/相关」
 
-  * 论文类条目：必须包含 arXiv/原文链接
-  * 调查报告/人物专访：必须包含原文链接
-  * 重大产品发布：必须包含官方文档/blog/release 链接
-
-* 若 `_strong_links` 为空，但 `_external_links` 或 `links` 中存在明显 repo/paper/官方链接，也应补进来；不要只给第三方链接，也不要只给 X 链接
-
-* **若高价值条目缺第三方链接**，必须读取 `~/.openclaw/skills/twitter-cli/SKILL.md` 后运行 `twitter tweet <tweet_id> --json` 补抓实际链接；补抓后若仍无 repo/arXiv/官方链接，需在正文中注明"原文链接待补"
+* 单条最多保留 1 条 X 主链接 + 1-3 条最强第三方链接（`_strong_links`）；第一条链接必须是 X 主链接；第三方链接不得为空（当条目有 `_strong_links` 时）
 
 * 只能使用 item 自带的 `links`、`_strong_links`、`_external_links`、`_related_urls`，或通过 twitter-cli 补抓到的实际链接；不得臆造 URL
 
 * 过滤掉广告跟踪、媒体二次报道、低信号聚合页；除非它本身就是官方首发页面
-
-* 链接文本要具体：作者名 + 内容摘要，或 `GitHub: repo` / `arXiv: paper` / `Official: docs`；不要写「主链接/相关」
-
-* 单条最多保留 1 条 X 主链接 + 1-3 条最强第三方链接（`_strong_links`）；第一条链接必须是 X 主链接；第三方链接不得为空（当条目有 `_strong_links` 时）

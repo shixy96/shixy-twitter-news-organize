@@ -190,12 +190,14 @@ def run_single(
             write_json(
                 artifacts_dir / "post.json", {"_parse_error": str(e), "_raw": raw_output[:500]}
             )
-            return {
+            metrics = {
                 "skill": "x-news-digest",
                 "status": "FAIL",
                 "errors": [f"JSON parse error: {e}"],
                 "run": run_index,
             }
+            write_json(run_dir / "results" / f"run-{run_index:03d}" / "metrics.json", metrics)
+            return metrics
 
         # Write post.json
         post_json_path = artifacts_dir / "post.json"
