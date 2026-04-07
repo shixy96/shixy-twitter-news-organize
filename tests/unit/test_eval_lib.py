@@ -260,6 +260,15 @@ class TestEvaluateDigest(unittest.TestCase):
         self.assertEqual(result["status"], "FAIL")
         self.assertEqual(result["item_checks"][0]["issues"], ["item_not_dict"])
 
+    def test_categories_null_does_not_raise(self):
+        """Null categories should be treated as empty list, not raise TypeError."""
+        post = self._valid_post()
+        post["categories"] = None
+        self._write_post(post)
+        result = evaluate_digest(self.artifacts_dir)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertIn("missing 'categories'", result["errors"])
+
     def test_valid_post(self):
         post = self._valid_post()
         self._write_post(post)

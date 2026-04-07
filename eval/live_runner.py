@@ -252,6 +252,10 @@ def run_live_eval(
             return {
                 "error": f"No filtered.json found for {date}. Run pipeline first or provide --filtered."
             }
+    elif not filtered_path.exists():
+        return {
+            "error": f"Filtered file not found: {filtered_path}. Run pipeline first or provide a valid --filtered path."
+        }
 
     # Create invocation dir: eval/runs/{date}/{timestamp}-live-{id}/
     run_root = ensure_dir(EVAL_RUNS_ROOT / date)

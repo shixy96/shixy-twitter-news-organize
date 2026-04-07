@@ -64,6 +64,20 @@ class TestRunSingleJsonParseFailure(unittest.TestCase):
             metrics = json.loads(metrics_path.read_text())
             self.assertEqual(metrics["status"], "FAIL")
 
+    def test_nonexistent_filtered_path_returns_error(self):
+        """Nonexistent --filtered path should return error, not raise FileNotFoundError."""
+        from live_runner import run_live_eval
+
+        result = run_live_eval(
+            date="2026-04-06",
+            runs=1,
+            model="sonnet",
+            filtered_path=Path("/nonexistent/path/filtered.json"),
+        )
+
+        self.assertIn("error", result)
+        self.assertIn("filtered", result["error"].lower())
+
 
 if __name__ == "__main__":
     unittest.main()

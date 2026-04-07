@@ -99,7 +99,11 @@ def evaluate_digest(artifacts_dir: Path) -> dict:
             errors.append(f"missing '{field}'")
             status = "FAIL"
 
-    categories = post.get("categories", [])
+    if post.get("categories") is None:
+        errors.append("missing 'categories'")
+        status = "FAIL"
+
+    categories = post.get("categories") or []
     items = []
     selected_ids = []
     for cat in categories:
