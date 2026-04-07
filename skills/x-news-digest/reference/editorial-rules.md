@@ -248,7 +248,7 @@
 
 **补链流程（必须在入选前完成）**：
 
-1. 若高价值条目缺第三方链接，读取 `~/.openclaw/skills/twitter-cli/SKILL.md`
+1. 若高价值条目缺第三方链接，读取 `./twitter-cli.md`
 2. 运行 `twitter tweet <tweet_id> --json` 补抓实际链接
 3. 补抓后若仍无 repo/arXiv/官方链接：
    - 论文/研究报告类 → **排除**，不降为 related_links
