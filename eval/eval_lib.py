@@ -136,14 +136,15 @@ def evaluate_digest(artifacts_dir: Path) -> dict:
             issues.append("has_placeholder")
 
         if issues:
-            status = (
-                "FAIL"
-                if any(
-                    i in ("title_not_chinese", "body_not_chinese", "has_placeholder")
-                    for i in issues
+            if status != "FAIL":
+                status = (
+                    "FAIL"
+                    if any(
+                        i in ("title_not_chinese", "body_not_chinese", "has_placeholder")
+                        for i in issues
+                    )
+                    else "WARN"
                 )
-                else "WARN"
-            )
 
         item_checks.append({"canonical_id": cid, "title": title, "issues": issues})
 

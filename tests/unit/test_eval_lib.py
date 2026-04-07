@@ -204,6 +204,16 @@ class TestEvaluateDigest(unittest.TestCase):
         issues = result["item_checks"][0]["issues"]
         self.assertIn("has_placeholder", issues)
 
+    def test_fail_preserved_over_item_warn(self):
+        """Frontmatter FAIL should not be downgraded by item-level WARN issues."""
+        post = self._valid_post()
+        del post["title"]  # causes frontmatter FAIL
+        post["categories"][0]["items"][0]["title"] = "x" * 55  # only WARN-level issue
+        self._write_post(post)
+        result = evaluate_digest(self.artifacts_dir)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertIn("missing 'title'", result["errors"])
+
     def test_valid_post(self):
         post = self._valid_post()
         self._write_post(post)

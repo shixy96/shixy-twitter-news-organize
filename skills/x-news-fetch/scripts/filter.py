@@ -97,6 +97,8 @@ def parse_time(value: str) -> datetime | None:
         return None
     try:
         normalized = value.strip()
+        if normalized.endswith("Z"):
+            normalized = normalized[:-1] + "+00:00"
         if len(normalized) >= 5 and normalized[-5] in "+-" and normalized[-3] != ":":
             normalized = f"{normalized[:-2]}:{normalized[-2:]}"
         dt = datetime.fromisoformat(normalized)
