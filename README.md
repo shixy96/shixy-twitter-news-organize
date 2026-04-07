@@ -28,9 +28,6 @@ shixy-twitter-news-organize/
 │   └── x-news-tts/
 │       └── scripts/
 │           └── tts.py             # edge-tts 音频生成
-├── src/x_news_shared/             # 跨 skill 共享模块
-│   ├── schema.py                  # JSON Schema + 校验
-│   └── normalize.py               # URL 规范化
 ├── eval/                          # Eval harness
 │   ├── fixtures/                  # 历史测试数据 (fixtures/{date}/filtered.json, post.json)
 │   ├── eval_lib.py                # 评估函数库
@@ -43,8 +40,12 @@ shixy-twitter-news-organize/
 │   └── experiments.jsonl          # 实验记录
 ├── tests/                         # 单元测试
 │   └── unit/                     # tests/unit/
-└── docs/
-    └── pipeline-redesign.md       # 设计文档
+└── docs/                          # 设计文档
+    ├── 1-pipeline-redesign.md
+    ├── 2-pipeline-simplify.md
+    ├── 3-eval-refactor.md
+    ├── 4-auto-improve.md
+    └── ...
 ```
 
 ## 快速开始
@@ -55,12 +56,6 @@ shixy-twitter-news-organize/
 - `twitter` CLI — X API 抓取
 - `gh` CLI — GitHub 元数据（可选，失败降级）
 - `edge-tts` — TTS 音频生成
-
-### 运行全量 Pipeline
-
-```bash
-/run-pipeline
-```
 
 ### 运行特定 Phase
 
@@ -86,19 +81,6 @@ python3 improve/cli.py auto-improve --dates 2026-04-06 --max-iters 5 --runs-per-
 ```bash
 python3 -m unittest discover tests/ -v
 ```
-
-## 共享模块
-
-`src/x_news_shared/` 提供跨 skill 复用：
-
-```python
-from x_news_shared import normalize_domain, ALLOWED_CATEGORIES, validate_json_schema
-```
-
-| 模块 | 用途 |
-|------|------|
-| `schema.py` | FILTERED_SCHEMA, POST_SCHEMA, ALLOWED_CATEGORIES, validate_json_schema() |
-| `normalize.py` | URL 规范化 |
 
 ## 开发规范
 

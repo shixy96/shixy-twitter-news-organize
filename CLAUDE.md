@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Pipeline Workflow
 
-Each skill has a `SKILL.md` that defines its interface. Run the full pipeline with `/run-pipeline`. For individual phases, read each skill's `SKILL.md` and run its scripts manually.
+Each skill has a `SKILL.md` that defines its interface. For individual phases, read each skill's `SKILL.md` and run its scripts manually.
 
 The core skill is **x-news-digest**: it reads filtered.json, selects 8-12 items, enriches them with tools (twitter/gh/WebFetch), writes Chinese titles and body text, and outputs post.json + post.md. Editorial rules are in `skills/x-news-digest/reference/editorial-rules.md`.
 
@@ -61,5 +61,3 @@ mkdir -p "$DAILY_DIR"
 export RUN_ROOT REPORT_DATE
 # ... follow SKILL.md for each phase; each skill derives its own internal paths from RUN_ROOT + REPORT_DATE
 ```
-
-Or use `/run-pipeline` skill for the full end-to-end run.
