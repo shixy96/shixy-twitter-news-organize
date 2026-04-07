@@ -269,6 +269,45 @@ class TestEvaluateDigest(unittest.TestCase):
         self.assertEqual(result["status"], "FAIL")
         self.assertIn("missing 'categories'", result["errors"])
 
+    def test_items_null_does_not_raise(self):
+        """Null items in a category should be treated as empty, not raise TypeError."""
+        post = self._valid_post()
+        post["categories"][0]["items"] = None
+        self._write_post(post)
+        result = evaluate_digest(self.artifacts_dir)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertTrue(any("items is null" in e for e in result["errors"]))
+
+    def test_non_string_title_does_not_raise(self):
+        """Non-string title (e.g., number/object) should not raise TypeError."""
+        post = self._valid_post()
+        post["categories"][0]["items"][0]["title"] = 12345  # number instead of string
+        self._write_post(post)
+        result = evaluate_digest(self.artifacts_dir)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertTrue(
+            any(
+                "title_not_string" in str(ic.get("issues", []))
+                for ic in result.get("item_checks", [])
+            )
+        )
+
+    def test_non_string_body_does_not_raise(self):
+        """Non-string body should not raise TypeError."""
+        post = self._valid_post()
+        post["categories"][0]["items"][0]["body"] = {
+            "text": "some content"
+        }  # object instead of string
+        self._write_post(post)
+        result = evaluate_digest(self.artifacts_dir)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertTrue(
+            any(
+                "body_not_string" in str(ic.get("issues", []))
+                for ic in result.get("item_checks", [])
+            )
+        )
+
     def test_valid_post(self):
         post = self._valid_post()
         self._write_post(post)

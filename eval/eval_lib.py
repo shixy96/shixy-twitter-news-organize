@@ -115,7 +115,10 @@ def evaluate_digest(artifacts_dir: Path) -> dict:
         if cat_name not in ALLOWED_CATEGORIES:
             errors.append(f"invalid category: {cat_name}")
             status = "FAIL"
-        for item in cat.get("items", []):
+        if cat.get("items") is None:
+            errors.append("items is null")
+            status = "FAIL"
+        for item in cat.get("items") or []:
             items.append(item)
 
     item_checks = []
@@ -139,22 +142,27 @@ def evaluate_digest(artifacts_dir: Path) -> dict:
 
         # Title checks
         title = item.get("title", "")
-        body = item.get("body", "")
-        if not contains_cjk(title):
-            issues.append("title_not_chinese")
-        if len(title) > 50:
-            issues.append("title_too_long")
+        if not isinstance(title, str):
+            issues.append("title_not_string")
+        else:
+            if not contains_cjk(title):
+                issues.append("title_not_chinese")
+            if len(title) > 50:
+                issues.append("title_too_long")
 
         # Body checks
-        if not contains_cjk(body):
-            issues.append("body_not_chinese")
-        body_len = len(body)
-        if body_len < 80:
-            issues.append("body_too_short")
-
-        # Placeholder checks
-        if re.search(r"(TODO|TBD|xxx|待补充|placeholder)", body, re.IGNORECASE):
-            issues.append("has_placeholder")
+        body = item.get("body", "")
+        if not isinstance(body, str):
+            issues.append("body_not_string")
+        else:
+            if not contains_cjk(body):
+                issues.append("body_not_chinese")
+            body_len = len(body)
+            if body_len < 80:
+                issues.append("body_too_short")
+            # Placeholder checks
+            if re.search(r"(TODO|TBD|xxx|待补充|placeholder)", body, re.IGNORECASE):
+                issues.append("has_placeholder")
 
         if issues:
             if status != "FAIL":
@@ -168,6 +176,9 @@ def evaluate_digest(artifacts_dir: Path) -> dict:
                             "has_placeholder",
                             "item_not_dict",
                             "missing_canonical_id",
+                            "title_not_string",
+                            "body_not_string",
+                            "items is null",
                         )
                         for i in issues
                     )
