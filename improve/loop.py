@@ -277,6 +277,24 @@ def run_auto_improve(
         else:
             print("[auto-improve] REJECT (no Pareto improvement)")
 
+        commit_hash = None
+        if accept:
+            commit_msg = f"improve: iter {iteration} — {change_summary}"
+            commit_hash = _git_commit_rules(commit_msg)
+            if commit_hash == "no-change":
+                # No actual rule change — discard and do not count as accepted
+                _git_discard_rules()
+                accept = False
+                rejected_count += 1
+            else:
+                best_scores = new_scores
+                accepted_count += 1
+                # Update judge feedback for next iteration
+                baseline = result
+        else:
+            _git_discard_rules()
+            rejected_count += 1
+
         entry = {
             "iter": iteration,
             "timestamp": datetime.now().isoformat(),
@@ -286,19 +304,8 @@ def run_auto_improve(
             "change_summary": change_summary,
             "any_fail": result["any_fail"],
         }
-
-        if accept:
-            commit_msg = f"improve: iter {iteration} — {change_summary}"
-            commit_hash = _git_commit_rules(commit_msg)
+        if commit_hash is not None:
             entry["commit"] = commit_hash
-            if commit_hash != "no-change":
-                best_scores = new_scores
-            accepted_count += 1
-            # Update judge feedback for next iteration
-            baseline = result
-        else:
-            _git_discard_rules()
-            rejected_count += 1
 
         _log_experiment(entry)
         history.append(entry)

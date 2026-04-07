@@ -171,6 +171,45 @@ class TestDeduplicateAndSort(unittest.TestCase):
         self.assertEqual(result[1]["id"], "3")
         self.assertEqual(result[2]["id"], "1")
 
+    def test_deduplicate_keeps_highest_engagement(self):
+        """Duplicate IDs should keep the tweet with highest engagement, not first-seen.
+
+        Bug: overlapping X Lists return the same tweet with different metric snapshots.
+        Keeping the first-seen copy discards higher-engagement data, biasing ranking.
+        """
+        tweets = [
+            # Same ID, lower engagement, earlier time (first-seen by naive dedup)
+            {
+                "id": "42",
+                "time": "2026-04-06T09:00:00Z",
+                "likes": 10,
+                "bookmarks": 5,
+                "retweets": 0,
+                "quotes": 0,
+                "views": 1000,
+            },
+            # Same ID, higher engagement, later time
+            {
+                "id": "42",
+                "time": "2026-04-06T10:00:00Z",
+                "likes": 200,
+                "bookmarks": 80,
+                "retweets": 30,
+                "quotes": 10,
+                "views": 50000,
+            },
+            # Another tweet
+            {"id": "99", "time": "2026-04-06T11:00:00Z", "likes": 50, "bookmarks": 20},
+        ]
+        result = deduplicate_and_sort(tweets)
+        # Should have 2 tweets
+        self.assertEqual(len(result), 2)
+        # Tweet "42" should be the HIGH-engagement version (likes=200, bookmarks=80)
+        # not the low-engagement first-seen version (likes=10, bookmarks=5)
+        tweet_42 = next(t for t in result if t["id"] == "42")
+        self.assertEqual(tweet_42["likes"], 200)
+        self.assertEqual(tweet_42["bookmarks"], 80)
+
 
 class TestValidateRaw(unittest.TestCase):
     def test_valid_tweets(self):

@@ -80,6 +80,139 @@ class TestGitCommitRules(unittest.TestCase):
         # FAIL run: e_score should be 0, so composite = 0
         self.assertEqual(composite_score(s, 0), 0)
 
+    @patch("loop._git_discard_rules")
+    @patch("loop._git_commit_rules")
+    def test_no_change_not_accepted(self, mock_commit, mock_discard):
+        """No-change commit_hash should not increment accepted_count.
+
+        Bug: when _git_commit_rules returns 'no-change' (rules unchanged),
+        accepted_count is still incremented if _pareto_improved is True (e.g. random
+        score variance). This corrupts the accepted/rejected counter.
+        """
+        import loop as loop_module
+        import tempfile
+        import shutil
+        from unittest.mock import patch as mock_patch
+
+        old_eval_dir = loop_module.EVAL_DIR
+        old_exp_log = loop_module.EXPERIMENTS_LOG
+
+        tmpdir = Path(tempfile.mkdtemp())
+        fixtures_dir = tmpdir / "fixtures" / "2026-04-06"
+        fixtures_dir.mkdir(parents=True)
+        (fixtures_dir / "filtered.json").write_text("[]", encoding="utf-8")
+        exp_log = tmpdir / "experiments.jsonl"
+        exp_log.touch()
+        rules_content = "# editorial rules\n"
+        rules_file = tmpdir / "editorial-rules.md"
+        rules_file.write_text(rules_content, encoding="utf-8")
+        loop_module.EVAL_DIR = tmpdir
+        loop_module.EXPERIMENTS_LOG = exp_log
+        loop_module.EDITORIAL_RULES = rules_file
+
+        # Simulate: _git_commit_rules returns "no-change" (rules unchanged)
+        mock_commit.return_value = "no-change"
+
+        # propose_change returns EXACT same content as file → no diff
+        with mock_patch.object(
+            loop_module, "propose_change", MagicMock(return_value=rules_content)
+        ):
+            result = loop_module.run_auto_improve(
+                dates=["2026-04-06"],
+                max_iters=1,
+                runs_per_iter=1,
+                digest_model="sonnet",
+                judge_model="opus",
+                proposer_model="opus",
+            )
+
+        # accepted_count must be 0 since no actual change was made
+        self.assertEqual(result["accepted"], 0)
+
+        loop_module.EVAL_DIR = old_eval_dir
+        loop_module.EXPERIMENTS_LOG = old_exp_log
+        loop_module.EDITORIAL_RULES = (
+            loop_module.REPO_ROOT / "skills" / "x-news-digest" / "reference" / "editorial-rules.md"
+        )
+        shutil.rmtree(tmpdir)
+
+    @patch("loop._git_discard_rules")
+    @patch("loop._git_commit_rules")
+    def test_no_change_accepted_when_pareto_true(self, mock_commit, mock_discard):
+        """accepted_count incremented even when commit_hash='no-change' and pareto improved.
+
+        Bug: when _pareto_improved(new_scores, best_scores) is True (score noise) but
+        _git_commit_rules returns 'no-change' (rules unchanged), accepted_count is
+        STILL incremented. This corrupts the counter and the hill-climbing trajectory.
+        """
+        import loop as loop_module
+        import tempfile
+        import shutil
+        from unittest.mock import patch as mock_patch
+
+        old_eval_dir = loop_module.EVAL_DIR
+        old_exp_log = loop_module.EXPERIMENTS_LOG
+
+        tmpdir = Path(tempfile.mkdtemp())
+        fixtures_dir = tmpdir / "fixtures" / "2026-04-06"
+        fixtures_dir.mkdir(parents=True)
+        (fixtures_dir / "filtered.json").write_text("[]", encoding="utf-8")
+        exp_log = tmpdir / "experiments.jsonl"
+        exp_log.touch()
+        rules_content = "# editorial rules\n"
+        rules_file = tmpdir / "editorial-rules.md"
+        rules_file.write_text(rules_content, encoding="utf-8")
+        loop_module.EVAL_DIR = tmpdir
+        loop_module.EXPERIMENTS_LOG = exp_log
+        loop_module.EDITORIAL_RULES = rules_file
+
+        mock_commit.return_value = "no-change"
+
+        # Track which call is baseline vs iteration to return different scores
+        eval_call_count = [0]
+
+        def fake_evaluate(dates, runs, digest, judge):
+            eval_call_count[0] += 1
+            if eval_call_count[0] == 1:
+                # baseline: score = 50
+                return {
+                    "scores_by_date": {"2026-04-06": 50},
+                    "judge_feedback": [],
+                    "any_fail": False,
+                }
+            else:
+                # iteration: score = 60 > 50 → Pareto-improved, but rules unchanged
+                return {
+                    "scores_by_date": {"2026-04-06": 60},
+                    "judge_feedback": [],
+                    "any_fail": False,
+                }
+
+        with mock_patch.object(
+            loop_module, "propose_change", MagicMock(return_value=rules_content)
+        ):
+            with mock_patch.object(loop_module, "evaluate_candidate", side_effect=fake_evaluate):
+                result = loop_module.run_auto_improve(
+                    dates=["2026-04-06"],
+                    max_iters=1,
+                    runs_per_iter=1,
+                    digest_model="sonnet",
+                    judge_model="opus",
+                    proposer_model="opus",
+                )
+
+        # accepted_count must be 0 — no actual rules change was committed.
+        # Bug would set accepted=1 because accept=True (Pareto improved) but
+        # commit_hash='no-change' should prevent counting as accepted.
+        self.assertEqual(result["accepted"], 0)
+
+        loop_module.EVAL_DIR = old_eval_dir
+        loop_module.EXPERIMENTS_LOG = old_exp_log
+        loop_module.EDITORIAL_RULES = (
+            loop_module.REPO_ROOT / "skills" / "x-news-digest" / "reference" / "editorial-rules.md"
+        )
+        shutil.rmtree(tmpdir)
+
     @patch("loop.run_single")
     def test_exception_feedback_included_in_judge_feedback(self, mock_run):
         """Exception-run feedback should be included in all_judge_feedback."""

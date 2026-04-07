@@ -196,15 +196,20 @@ def fetch_all_lists(config: dict, hours: int, until: datetime) -> list[dict]:
     return all_tweets
 
 
+def _engagement_score(t: dict) -> int:
+    """Compute engagement score for deduplication quality comparison."""
+    return t.get("likes", 0) + t.get("bookmarks", 0) * 2 + t.get("quotes", 0) * 3
+
+
 def deduplicate_and_sort(tweets: list[dict]) -> list[dict]:
-    """Deduplicate by id and sort newest-first."""
-    seen: set[str] = set()
-    unique = []
+    """Deduplicate by id and sort newest-first, keeping highest-engagement copy."""
+    by_id: dict[str, dict] = {}
     for t in tweets:
         tid = t.get("id", "")
-        if tid and tid not in seen:
-            seen.add(tid)
-            unique.append(t)
+        if not tid:
+            continue
+        if tid not in by_id or _engagement_score(t) > _engagement_score(by_id[tid]):
+            by_id[tid] = t
 
     def sort_key(t: dict) -> datetime:
         try:
@@ -212,7 +217,7 @@ def deduplicate_and_sort(tweets: list[dict]) -> list[dict]:
         except (TypeError, ValueError):
             return datetime.min.replace(tzinfo=timezone.utc)
 
-    return sorted(unique, key=sort_key, reverse=True)
+    return sorted(by_id.values(), key=sort_key, reverse=True)
 
 
 def validate_raw(tweets: list[dict]) -> bool:
