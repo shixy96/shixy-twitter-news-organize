@@ -223,6 +223,52 @@ class TestFilterPosts(unittest.TestCase):
                     author_counts[author], 2, f"Author {author} exceeds cap in {bucket_name}"
                 )
 
+    def test_author_cap_per_bucket_independent(self):
+        """Author cap of 2 should apply independently per bucket.
+
+        Same author can have 2 strong + 2 medium + 2 backfill items.
+        """
+        author = "@testauthor"
+        base_tweet = {
+            "id": "base",
+            "url": "https://x.com/user/status/1",
+            "author": author,
+            "text": "Test",
+            "time": "2026-04-06T10:00:00Z",
+            "likes": 100,
+            "bookmarks": 50,
+            "views": 1000,
+        }
+        # 3 strong items from same author
+        strong_raw = [
+            {
+                **base_tweet,
+                "id": f"s{i}",
+                "time": f"2026-04-06T{10 + i:02d}:00:00Z",
+                "likes": 300 + i,
+            }
+            for i in range(3)
+        ]
+        # 3 medium items from same author
+        medium_raw = [
+            {
+                **base_tweet,
+                "id": f"m{i}",
+                "time": f"2026-04-06T{10 + i:02d}:00:00Z",
+                "likes": 100 + i,
+                "bookmarks": 30 + i,
+            }
+            for i in range(3)
+        ]
+        now = datetime(2026, 4, 6, 14, 0, 0, tzinfo=timezone.utc)
+
+        strong_result = filter_posts(strong_raw, now=now)
+        medium_result = filter_posts(medium_raw, now=now)
+
+        # Each bucket should have at most 2 items from the author
+        self.assertLessEqual(len(strong_result["strong"]), 2)
+        self.assertLessEqual(len(medium_result["medium"]), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Eval library for x-news-skills.
+Eval library for shixy-twitter-news-organize.
 
 Provides evaluation and benchmark aggregation for x-news-digest.
 """

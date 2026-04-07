@@ -1,5 +1,5 @@
 [project]
-name = "x-news-skills"
+name = "shixy-twitter-news-organize"
 version = "0.1.0"
 description = "x-news AI digest pipeline skills"
 requires-python = ">=3.10"

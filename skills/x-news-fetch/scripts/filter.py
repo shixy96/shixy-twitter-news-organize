@@ -338,9 +338,9 @@ def filter_posts(
     )
 
     # Author cap: max 2 per author per bucket
-    author_counts: Counter[str] = Counter()
     capped = {"strong": [], "medium": [], "backfill": []}
     for name, items in (("strong", strong), ("backfill", backfill), ("medium", medium)):
+        author_counts: Counter[str] = Counter()
         for item in items:
             a = item.get("author", "")
             if author_counts[a] < 2:

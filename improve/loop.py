@@ -122,6 +122,14 @@ def _git_commit_rules(message: str) -> str:
         check=True,
         capture_output=True,
     )
+    diff_result = subprocess.run(
+        ["git", "diff", "--staged", "--stat"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    if not diff_result.stdout.strip():
+        return "no-change"
     subprocess.run(
         ["git", "commit", "-m", message],
         cwd=REPO_ROOT,

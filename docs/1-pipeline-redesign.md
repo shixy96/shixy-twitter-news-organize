@@ -7,7 +7,7 @@
 
 x-news pipeline 当前是"全 agent 驱动"的 prompt-native 设计，技能通过读 SKILL.md 执行，存在结果不稳定、难以量化评测的问题。pipeline-redesign.md 定义了重构目标：将固定 I/O 步骤沉淀成脚本，用 JSON 契约串联各阶段，使 pipeline 可评测、可分发。
 
-x-news-job 是在 general skills monorepo 中已经实现的同 pipeline，它有完整的 repo-native eval harness（`eval_lib.py` ~1585 行）和 Python 编排层。本项目（x-news-skills）是**可分发的 skill 仓库**，但 eval 基础设施应借鉴 x-news-job 的成熟实践。
+x-news-job 是在 general skills monorepo 中已经实现的同 pipeline，它有完整的 repo-native eval harness（`eval_lib.py` ~1585 行）和 Python 编排层。本项目（shixy-twitter-news-organize）是**可分发的 skill 仓库**，但 eval 基础设施应借鉴 x-news-job 的成熟实践。
 
 ---
 

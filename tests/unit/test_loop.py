@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+"""Unit tests for improve/loop.py."""
+
+import subprocess
+import sys
+import unittest
+from pathlib import Path
+from unittest.mock import patch, MagicMock
+
+sys_path_root = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(sys_path_root / "improve"))
+
+
+class TestGitCommitRules(unittest.TestCase):
+    @patch("subprocess.run")
+    def test_git_commit_rules_no_diff(self, mock_run):
+        """git commit should be skipped when editorial-rules.md has no changes."""
+        from loop import _git_commit_rules
+
+        # Simulate: git add succeeds, git diff --staged returns empty (no changes)
+        mock_run.side_effect = [
+            MagicMock(returncode=0, stdout="", stderr=""),  # git add
+            MagicMock(returncode=0, stdout="", stderr=""),  # git diff --staged (empty)
+        ]
+
+        result = _git_commit_rules("test: no change")
+
+        # commit should not be called
+        commit_calls = [
+            c for c in mock_run.call_args_list if c[0][0][0] == "git" and c[0][0][1] == "commit"
+        ]
+        self.assertEqual(len(commit_calls), 0)
+        self.assertEqual(result, "no-change")
+
+    @patch("subprocess.run")
+    def test_git_commit_rules_with_diff(self, mock_run):
+        """git commit should run when there are staged changes."""
+        from loop import _git_commit_rules
+
+        mock_run.side_effect = [
+            MagicMock(returncode=0, stdout="", stderr=""),  # git add
+            MagicMock(
+                returncode=0, stdout="1 file changed, 10 insertions(+)", stderr=""
+            ),  # git diff --staged
+            MagicMock(returncode=0, stdout="", stderr=""),  # git commit
+            MagicMock(returncode=0, stdout="abc1234\n", stderr=""),  # git rev-parse
+        ]
+
+        result = _git_commit_rules("test: with change")
+
+        # commit should be called once
+        commit_calls = [
+            c for c in mock_run.call_args_list if c[0][0][0] == "git" and c[0][0][1] == "commit"
+        ]
+        self.assertEqual(len(commit_calls), 1)
+        self.assertEqual(result, "abc1234")
+
+
+if __name__ == "__main__":
+    unittest.main()

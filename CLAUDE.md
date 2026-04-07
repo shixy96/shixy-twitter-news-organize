@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**x-news-skills** is a monorepo of 3 distributable pipeline skills that produce a daily AI news digest:
+**shixy-twitter-news-organize** is a monorepo of 3 distributable pipeline skills that produce a daily AI news digest:
 
 | Skill | Phase | Output |
 |-------|-------|--------|

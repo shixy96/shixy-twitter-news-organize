@@ -1,4 +1,4 @@
-# x-news-skills
+# shixy-twitter-news-organize
 
 3 个可分发 pipeline skill，生产每日 AI 新闻日报。
 
@@ -13,7 +13,7 @@
 ## 项目结构
 
 ```
-x-news-skills/
+shixy-twitter-news-organize/
 ├── skills/
 │   ├── x-news-fetch/
 │   │   └── scripts/

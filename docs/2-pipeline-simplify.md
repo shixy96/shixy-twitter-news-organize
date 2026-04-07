@@ -1,4 +1,4 @@
-# x-news-skills 简化重构计划
+# shixy-twitter-news-organize 简化重构计划
 
 ## Context
 

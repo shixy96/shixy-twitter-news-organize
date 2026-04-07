@@ -74,7 +74,7 @@ def score_digest(
         _validate_judge_output(data)
         return data
 
-    except (json.JSONDecodeError, subprocess.TimeoutExpired, KeyError) as e:
+    except (json.JSONDecodeError, subprocess.TimeoutExpired, KeyError, AttributeError) as e:
         return {
             "scores": {d: {"score": 0, "reason": "judge error"} for d in DIMENSIONS},
             "total": 0,
@@ -86,6 +86,8 @@ def score_digest(
 
 def _validate_judge_output(data: dict) -> None:
     """Ensure judge output has correct structure; fix total if needed."""
+    if not isinstance(data, dict):
+        raise AttributeError(f"expected dict, got {type(data).__name__}")
     scores = data.get("scores", {})
     total = 0
     for dim in DIMENSIONS:
