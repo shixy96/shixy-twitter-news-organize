@@ -48,11 +48,16 @@ def evaluate_candidate(
         "scores_by_date": {date: median_composite},
         "judge_feedback": [judge_outputs...],
         "any_fail": bool,
+        "fail_reasons": [reason...],
+        "fail_count": int,
     }
     """
     scores_by_date: dict[str, int] = {}
     all_judge_feedback: list[dict] = []
     any_fail = False
+    fail_reasons: list[str] = []
+    seen_fail_reasons: set[str] = set()
+    fail_count = 0
 
     for date in dates:
         filtered_path = EVAL_DIR / "fixtures" / date / "filtered.json"
@@ -67,8 +72,12 @@ def evaluate_candidate(
             except Exception as e:
                 metrics = {"status": "FAIL", "errors": [str(e)]}
                 any_fail = True
+                fail_count += 1
                 date_scores.append(0)
                 judge_result = {"scores": {}, "total": 0, "major_issues": [str(e)]}
+                if str(e) not in seen_fail_reasons:
+                    fail_reasons.append(str(e))
+                    seen_fail_reasons.add(str(e))
                 date_feedback.append(judge_result)
                 all_judge_feedback.append(judge_result)
                 continue
@@ -76,8 +85,14 @@ def evaluate_candidate(
             s_score = structural_score(metrics)
             if metrics.get("status") == "FAIL":
                 any_fail = True
+                fail_count += 1
                 e_score = 0
-                judge_result = {"scores": {}, "total": 0, "major_issues": ["structurally failed"]}
+                issues = metrics.get("errors") or ["structurally failed"]
+                judge_result = {"scores": {}, "total": 0, "major_issues": issues}
+                for issue in issues:
+                    if issue not in seen_fail_reasons:
+                        fail_reasons.append(issue)
+                        seen_fail_reasons.add(issue)
             else:
                 artifacts_dir = run_dir / "results" / "artifacts"
                 post_path = artifacts_dir / "post.json"
@@ -101,6 +116,8 @@ def evaluate_candidate(
         "scores_by_date": scores_by_date,
         "judge_feedback": all_judge_feedback,
         "any_fail": any_fail,
+        "fail_reasons": fail_reasons,
+        "fail_count": fail_count,
     }
 
 
@@ -170,6 +187,8 @@ def run_auto_improve(
     digest_model: str = "sonnet",
     judge_model: str = "opus",
     proposer_model: str = "opus",
+    experiments_log: Path | None = None,
+    runs_root: Path | None = None,
 ) -> dict:
     """Run the hill-climbing auto-improve loop.
 
@@ -185,11 +204,12 @@ def run_auto_improve(
 
     # Create timestamped run directory for intermediate products (post.json, scores, etc.)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    RUNS_DIR = IMPROVE_DIR / "tmp_runs" / timestamp
+    runs_base_dir = runs_root or (IMPROVE_DIR / "tmp_runs")
+    RUNS_DIR = runs_base_dir / timestamp
     ensure_dir(RUNS_DIR)
 
     # Global experiments log (append-only, cumulative across all runs)
-    EXPERIMENTS_LOG = IMPROVE_DIR / "experiments.jsonl"
+    EXPERIMENTS_LOG = experiments_log or (IMPROVE_DIR / "experiments.jsonl")
 
     # Load full history for proposer context (all completed iterations)
     history: list[dict] = []
@@ -222,6 +242,8 @@ def run_auto_improve(
             "accepted": None,
             "change_summary": "baseline",
             "any_fail": baseline["any_fail"],
+            "fail_count": baseline.get("fail_count", 0),
+            "fail_reasons": baseline.get("fail_reasons", []),
         },
         EXPERIMENTS_LOG,
     )
@@ -326,6 +348,8 @@ def run_auto_improve(
             "accepted": accept,
             "change_summary": change_summary,
             "any_fail": result["any_fail"],
+            "fail_count": result.get("fail_count", 0),
+            "fail_reasons": result.get("fail_reasons", []),
         }
         if commit_hash is not None:
             entry["commit"] = commit_hash

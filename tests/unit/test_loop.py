@@ -4,6 +4,7 @@
 import subprocess
 import sys
 import unittest
+import json
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -97,6 +98,8 @@ class TestGitCommitRules(unittest.TestCase):
         mock_score_digest.assert_not_called()
         self.assertTrue(result["any_fail"])
         self.assertEqual(result["scores_by_date"]["2026-04-06"], 0)
+        self.assertEqual(result["fail_count"], 1)
+        self.assertEqual(result["fail_reasons"], ["missing title"])
 
         loop_module.EVAL_DIR = old_eval_dir
         shutil.rmtree(tmpdir)
@@ -124,6 +127,8 @@ class TestGitCommitRules(unittest.TestCase):
         rules_content = "# editorial rules\n"
         rules_file = tmpdir / "editorial-rules.md"
         rules_file.write_text(rules_content, encoding="utf-8")
+        experiments_log = tmpdir / "experiments.jsonl"
+        runs_root = tmpdir / "tmp_runs"
         loop_module.EVAL_DIR = tmpdir
         loop_module.EDITORIAL_RULES = rules_file
 
@@ -154,6 +159,8 @@ class TestGitCommitRules(unittest.TestCase):
                     digest_model="sonnet",
                     judge_model="opus",
                     proposer_model="opus",
+                    experiments_log=experiments_log,
+                    runs_root=runs_root,
                 )
 
         # accepted_count must be 0 since no actual change was made
@@ -188,6 +195,8 @@ class TestGitCommitRules(unittest.TestCase):
         rules_content = "# editorial rules\n"
         rules_file = tmpdir / "editorial-rules.md"
         rules_file.write_text(rules_content, encoding="utf-8")
+        experiments_log = tmpdir / "experiments.jsonl"
+        runs_root = tmpdir / "tmp_runs"
         loop_module.EVAL_DIR = tmpdir
         loop_module.EDITORIAL_RULES = rules_file
 
@@ -224,12 +233,86 @@ class TestGitCommitRules(unittest.TestCase):
                     digest_model="sonnet",
                     judge_model="opus",
                     proposer_model="opus",
+                    experiments_log=experiments_log,
+                    runs_root=runs_root,
                 )
 
         # accepted_count must be 0 — no actual rules change was committed.
         # Bug would set accepted=1 because accept=True (Pareto improved) but
         # commit_hash='no-change' should prevent counting as accepted.
         self.assertEqual(result["accepted"], 0)
+
+        loop_module.EVAL_DIR = old_eval_dir
+        loop_module.EDITORIAL_RULES = (
+            loop_module.REPO_ROOT / "skills" / "x-news-digest" / "reference" / "editorial-rules.md"
+        )
+        shutil.rmtree(tmpdir)
+
+    @patch("loop._git_discard_rules")
+    @patch("loop._git_commit_rules")
+    def test_fail_metadata_logged_to_experiments_jsonl(self, mock_commit, mock_discard):
+        """experiments.jsonl should include fail_count and fail_reasons for failed evaluations."""
+        import loop as loop_module
+        import tempfile
+        import shutil
+        from unittest.mock import patch as mock_patch
+
+        old_eval_dir = loop_module.EVAL_DIR
+
+        tmpdir = Path(tempfile.mkdtemp())
+        fixtures_dir = tmpdir / "fixtures" / "2026-04-06"
+        fixtures_dir.mkdir(parents=True)
+        (fixtures_dir / "filtered.json").write_text("[]", encoding="utf-8")
+        rules_file = tmpdir / "editorial-rules.md"
+        rules_file.write_text("# editorial rules\n", encoding="utf-8")
+        experiments_log = tmpdir / "experiments.jsonl"
+        runs_root = tmpdir / "tmp_runs"
+        loop_module.EVAL_DIR = tmpdir
+        loop_module.EDITORIAL_RULES = rules_file
+        mock_commit.return_value = "no-change"
+
+        eval_call_count = [0]
+
+        def fake_evaluate(dates, runs, digest, judge, runs_dir, iter_num=0, **_kwargs):
+            eval_call_count[0] += 1
+            if eval_call_count[0] == 1:
+                return {
+                    "scores_by_date": {"2026-04-06": 50},
+                    "judge_feedback": [],
+                    "any_fail": False,
+                    "fail_count": 0,
+                    "fail_reasons": [],
+                }
+            return {
+                "scores_by_date": {"2026-04-06": 0},
+                "judge_feedback": [{"major_issues": ["missing title"]}],
+                "any_fail": True,
+                "fail_count": 1,
+                "fail_reasons": ["missing title"],
+            }
+
+        with mock_patch.object(
+            loop_module, "propose_change", MagicMock(return_value="# editorial rules\n# changed\n")
+        ):
+            with mock_patch.object(loop_module, "evaluate_candidate", side_effect=fake_evaluate):
+                loop_module.run_auto_improve(
+                    dates=["2026-04-06"],
+                    max_iters=1,
+                    runs_per_iter=1,
+                    digest_model="sonnet",
+                    judge_model="opus",
+                    proposer_model="opus",
+                    experiments_log=experiments_log,
+                    runs_root=runs_root,
+                )
+
+        lines = [json.loads(line) for line in experiments_log.read_text(encoding="utf-8").splitlines()]
+        self.assertEqual(len(lines), 2)
+        self.assertEqual(lines[0]["fail_count"], 0)
+        self.assertEqual(lines[0]["fail_reasons"], [])
+        self.assertEqual(lines[1]["fail_count"], 1)
+        self.assertEqual(lines[1]["fail_reasons"], ["missing title"])
+        self.assertTrue(lines[1]["any_fail"])
 
         loop_module.EVAL_DIR = old_eval_dir
         loop_module.EDITORIAL_RULES = (
