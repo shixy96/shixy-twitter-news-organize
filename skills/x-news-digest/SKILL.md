@@ -180,7 +180,7 @@ mkdir -p "$DAILY_DIR" "$MEDIA_DIR"
 1. ✅ item 总数在 8-12 范围（候选充足时）
 2. ✅ 每条 title 是中文，且不是原始推文标题的直拷
 3. ✅ 每条 body 是中文正文，不含重复段落
-4. ✅ category 来自允许列表（模型发布、开发生态、技术洞察、产品动态、安全事件、行业观点）
+4. ✅ 优先使用固定分类；若扩展分类，命名清晰且确有必要，不只是对固定分类换个说法
 5. ✅ 无 placeholder 文本（TODO、TBD、xxx、待补充）
 6. ✅ related_links 中的 URL 不是捏造的
 7. ✅ canonical_id 字段已填写（用于可追溯性）

@@ -66,7 +66,14 @@ def propose_change(
         for i, fb in enumerate(judge_feedback):
             parts.append(f"### Run {i + 1}")
             for dim, detail in fb.get("scores", {}).items():
-                parts.append(f"- {dim}: {detail.get('score', '?')}/10 — {detail.get('reason', '')}")
+                # Handle both {"dim": {"score": N, "reason": "..."}} and {"dim": N} formats
+                if isinstance(detail, dict):
+                    score = detail.get("score", "?")
+                    reason = detail.get("reason", "")
+                else:
+                    score = detail
+                    reason = ""
+                parts.append(f"- {dim}: {score}/10 — {reason}")
             issues = fb.get("major_issues", [])
             if issues:
                 parts.append(f"- Major issues: {'; '.join(issues)}")

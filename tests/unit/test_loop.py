@@ -104,6 +104,55 @@ class TestGitCommitRules(unittest.TestCase):
         loop_module.EVAL_DIR = old_eval_dir
         shutil.rmtree(tmpdir)
 
+    @patch("loop.score_digest")
+    @patch("loop.run_single")
+    def test_run_scores_by_date_includes_per_run_scores(self, mock_run_single, mock_score_digest):
+        """Per-run structural/editorial/composite scores should be returned for logging."""
+        import loop as loop_module
+        import tempfile
+        import shutil
+
+        old_eval_dir = loop_module.EVAL_DIR
+
+        tmpdir = Path(tempfile.mkdtemp())
+        fixtures_dir = tmpdir / "fixtures" / "2026-04-06"
+        fixtures_dir.mkdir(parents=True)
+        (fixtures_dir / "filtered.json").write_text("[]", encoding="utf-8")
+        loop_module.EVAL_DIR = tmpdir
+
+        mock_run_single.return_value = {"status": "PASS"}
+        mock_score_digest.return_value = {"total": 55, "scores": {}, "major_issues": []}
+
+        artifacts_dir = tmpdir / "runs" / "2026-04-06" / "iter-000" / "run-001" / "results" / "artifacts"
+        artifacts_dir.mkdir(parents=True)
+        (artifacts_dir / "post.json").write_text("{}", encoding="utf-8")
+
+        result = loop_module.evaluate_candidate(
+            dates=["2026-04-06"],
+            runs_per_iter=1,
+            digest_model="sonnet",
+            judge_model="opus",
+            runs_dir=tmpdir / "runs",
+        )
+
+        self.assertIn("run_scores_by_date", result)
+        self.assertIn("2026-04-06", result["run_scores_by_date"])
+        self.assertEqual(
+            result["run_scores_by_date"]["2026-04-06"],
+            [
+                {
+                    "run": 1,
+                    "status": "PASS",
+                    "structural_score": 30,
+                    "editorial_score": 55,
+                    "composite_score": 85,
+                }
+            ],
+        )
+
+        loop_module.EVAL_DIR = old_eval_dir
+        shutil.rmtree(tmpdir)
+
     @patch("loop._git_discard_rules")
     @patch("loop._git_commit_rules")
     def test_no_change_not_accepted(self, mock_commit, mock_discard):
@@ -308,6 +357,8 @@ class TestGitCommitRules(unittest.TestCase):
 
         lines = [json.loads(line) for line in experiments_log.read_text(encoding="utf-8").splitlines()]
         self.assertEqual(len(lines), 2)
+        self.assertIn("run_scores_by_date", lines[0])
+        self.assertIn("run_scores_by_date", lines[1])
         self.assertEqual(lines[0]["fail_count"], 0)
         self.assertEqual(lines[0]["fail_reasons"], [])
         self.assertEqual(lines[1]["fail_count"], 1)

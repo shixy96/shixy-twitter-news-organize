@@ -68,10 +68,10 @@ Are exclusion/inclusion decisions sound? Proper handling of opinions, backfill, 
 
 Good category distribution, highlight usage, daily title reflects content?
 
-- **9-10**: 2-5 items per category, no empty or overstuffed categories. 1-5 highlights used appropriately. Daily title and description match actual content. Correct `pubDate`, `slug`, `tags`.
-- **7-8**: Minor imbalance (1 category slightly overstuffed or thin).
-- **5-6**: Noticeable distribution issues or highlight misuse.
-- **3-4**: Major structural issues.
+- **9-10**: 2-5 items per category, no empty or overstuffed categories. 1-5 highlights used appropriately. Daily title and description match actual content. Correct `pubDate`, `slug`, `tags`. Uses preferred categories by default; any extended category is clearly named, necessary, and not just a rename of an existing category.
+- **7-8**: Minor imbalance (1 category slightly overstuffed or thin), or 1 reasonable extended category with clear boundaries.
+- **5-6**: Noticeable distribution issues, highlight misuse, or a weak extended category that mostly overlaps an existing preferred category.
+- **3-4**: Major structural issues, confusing category naming, or multiple overlapping/fragmented categories.
 - **0-2**: Categories or metadata largely wrong.
 
 ## Output Format

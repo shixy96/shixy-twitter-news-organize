@@ -208,9 +208,7 @@ def run_single(
         try:
             post_data = json.loads(json_str)
         except json.JSONDecodeError as e:
-            write_json(
-                artifacts_dir / "post.json", {"_parse_error": str(e), "_raw": raw_output[:500]}
-            )
+            write_json(artifacts_dir / "post.json", {"_parse_error": str(e), "_raw": raw_output})
             metrics = {
                 "skill": "x-news-digest",
                 "status": "FAIL",

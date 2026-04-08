@@ -46,6 +46,7 @@ def evaluate_candidate(
 
     Returns {
         "scores_by_date": {date: median_composite},
+        "run_scores_by_date": {date: [run_score_dict...]},
         "judge_feedback": [judge_outputs...],
         "any_fail": bool,
         "fail_reasons": [reason...],
@@ -53,6 +54,7 @@ def evaluate_candidate(
     }
     """
     scores_by_date: dict[str, int] = {}
+    run_scores_by_date: dict[str, list[dict]] = {}
     all_judge_feedback: list[dict] = []
     any_fail = False
     fail_reasons: list[str] = []
@@ -62,6 +64,7 @@ def evaluate_candidate(
     for date in dates:
         filtered_path = EVAL_DIR / "fixtures" / date / "filtered.json"
         date_scores: list[int] = []
+        date_run_scores: list[dict] = []
         date_feedback: list[dict] = []
 
         for i in range(runs_per_iter):
@@ -73,11 +76,21 @@ def evaluate_candidate(
                 metrics = {"status": "FAIL", "errors": [str(e)]}
                 any_fail = True
                 fail_count += 1
-                date_scores.append(0)
+                c_score = 0
+                date_scores.append(c_score)
                 judge_result = {"scores": {}, "total": 0, "major_issues": [str(e)]}
                 if str(e) not in seen_fail_reasons:
                     fail_reasons.append(str(e))
                     seen_fail_reasons.add(str(e))
+                date_run_scores.append(
+                    {
+                        "run": i + 1,
+                        "status": "FAIL",
+                        "structural_score": 0,
+                        "editorial_score": 0,
+                        "composite_score": c_score,
+                    }
+                )
                 date_feedback.append(judge_result)
                 all_judge_feedback.append(judge_result)
                 continue
@@ -107,13 +120,24 @@ def evaluate_candidate(
 
             c_score = composite_score(s_score, e_score)
             date_scores.append(c_score)
+            date_run_scores.append(
+                {
+                    "run": i + 1,
+                    "status": metrics.get("status", "FAIL"),
+                    "structural_score": s_score,
+                    "editorial_score": e_score,
+                    "composite_score": c_score,
+                }
+            )
             date_feedback.append(judge_result)
             all_judge_feedback.append(judge_result)
 
         scores_by_date[date] = int(statistics.median(date_scores)) if date_scores else 0
+        run_scores_by_date[date] = date_run_scores
 
     return {
         "scores_by_date": scores_by_date,
+        "run_scores_by_date": run_scores_by_date,
         "judge_feedback": all_judge_feedback,
         "any_fail": any_fail,
         "fail_reasons": fail_reasons,
@@ -238,6 +262,7 @@ def run_auto_improve(
             "run_id": timestamp,
             "timestamp": datetime.now().isoformat(),
             "scores_by_date": baseline["scores_by_date"],
+            "run_scores_by_date": baseline.get("run_scores_by_date", {}),
             "best_scores": baseline["scores_by_date"],
             "accepted": None,
             "change_summary": "baseline",
@@ -344,6 +369,7 @@ def run_auto_improve(
             "run_id": timestamp,
             "timestamp": datetime.now().isoformat(),
             "scores_by_date": new_scores,
+            "run_scores_by_date": result.get("run_scores_by_date", {}),
             "best_scores": best_scores,
             "accepted": accept,
             "change_summary": change_summary,
