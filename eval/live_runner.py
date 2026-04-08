@@ -41,6 +41,17 @@ from eval_lib import (
 )
 
 
+def _format_llm_error(exc: Exception) -> str:
+    """Return a short, log-friendly LLM error string."""
+    if isinstance(exc, subprocess.TimeoutExpired):
+        return f"digest timeout ({exc.timeout}s)"
+    if isinstance(exc, subprocess.CalledProcessError):
+        return f"digest exit_code={exc.returncode}"
+    if isinstance(exc, FileNotFoundError):
+        return "digest command_not_found"
+    return str(exc)
+
+
 def build_prompt(
     filtered_json: str,
     editorial_rules: str,
@@ -160,14 +171,24 @@ def run_single(
         ]
 
         # Pipe user prompt via stdin
-        with open(prompt_file, "r", encoding="utf-8") as pf:
-            result = subprocess.run(
-                cmd,
-                stdin=pf,
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
+        try:
+            with open(prompt_file, "r", encoding="utf-8") as pf:
+                result = subprocess.run(
+                    cmd,
+                    stdin=pf,
+                    capture_output=True,
+                    text=True,
+                    timeout=300,
+                )
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError) as e:
+            metrics = {
+                "skill": "x-news-digest",
+                "status": "FAIL",
+                "errors": [_format_llm_error(e)],
+                "run": run_index,
+            }
+            write_json(run_dir / "results" / f"run-{run_index:03d}" / "metrics.json", metrics)
+            return metrics
 
         raw_output = result.stdout.strip()
 

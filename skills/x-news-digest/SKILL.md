@@ -102,6 +102,16 @@ mkdir -p "$DAILY_DIR" "$MEDIA_DIR"
 
 为每条选中内容编写中文标题和正文，输出 `$POST_JSON_PATH`。
 
+#### 输出要求（硬性）
+
+- 最终答案必须是**一个完整、合法的 JSON 对象**
+- **禁止**输出 markdown code fence（如 ```json）
+- **禁止**在 JSON 前后输出任何解释、说明、致歉、分析或补充文字
+- 所有 key 和字符串都必须使用 JSON 双引号
+- URL、字符串、数组、对象必须完整闭合，禁止输出半截 JSON
+- 输出前必须自行检查一次，确认内容可被严格 JSON 解析器直接解析
+- 若中途思考过其它表述，最终只保留 JSON，不保留思考过程
+
 #### post.json 结构
 
 ```json
@@ -174,6 +184,8 @@ mkdir -p "$DAILY_DIR" "$MEDIA_DIR"
 5. ✅ 无 placeholder 文本（TODO、TBD、xxx、待补充）
 6. ✅ related_links 中的 URL 不是捏造的
 7. ✅ canonical_id 字段已填写（用于可追溯性）
+8. ✅ 最终输出是**单个合法 JSON 对象**，无 markdown fence、无额外文字
+9. ✅ 所有 URL、字符串、数组、对象都已完整闭合，没有截断
 
 不通过则修复后重新写出。
 

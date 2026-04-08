@@ -22,6 +22,19 @@ DIMENSIONS = [
 ]
 
 
+def _format_llm_error(exc: Exception) -> str:
+    """Return a short, log-friendly LLM error string."""
+    if isinstance(exc, subprocess.TimeoutExpired):
+        return f"judge timeout ({exc.timeout}s)"
+    if isinstance(exc, subprocess.CalledProcessError):
+        return f"judge exit_code={exc.returncode}"
+    if isinstance(exc, FileNotFoundError):
+        return "judge command_not_found"
+    if isinstance(exc, json.JSONDecodeError):
+        return f"judge json_parse: {exc}"
+    return str(exc)
+
+
 def structural_score(metrics: dict) -> int:
     """Convert evaluate_digest() status to 0-30 score."""
     status = metrics.get("status", "FAIL")
@@ -62,7 +75,7 @@ def score_digest(
             system_prompt,
         ]
         with open(prompt_file, "r", encoding="utf-8") as pf:
-            result = subprocess.run(cmd, stdin=pf, capture_output=True, text=True, timeout=120)
+            result = subprocess.run(cmd, stdin=pf, capture_output=True, text=True, timeout=300)
 
         raw = result.stdout.strip()
 
@@ -85,7 +98,7 @@ def score_digest(
         return {
             "scores": {d: {"score": 0, "reason": "judge error"} for d in DIMENSIONS},
             "total": 0,
-            "major_issues": [f"Judge failed: {e}"],
+            "major_issues": [_format_llm_error(e)],
         }
     finally:
         Path(prompt_file).unlink(missing_ok=True)

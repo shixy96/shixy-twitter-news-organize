@@ -97,3 +97,6 @@ Rules:
 - `major_issues` lists 0-5 most impactful problems (empty list if none)
 - Keep reasons to 1 sentence each
 - Be strict: a typical good digest scores 50-60, excellent scores 65+
+- Do not output any explanation before or after the JSON object
+- Use strict JSON double quotes for all keys and strings
+- Ensure the JSON is complete and parseable before finalizing

@@ -11,6 +11,17 @@ from pathlib import Path
 META_PATH = Path(__file__).resolve().parent / "meta.md"
 
 
+def _format_llm_error(exc: Exception) -> str:
+    """Return a short, log-friendly LLM error string."""
+    if isinstance(exc, subprocess.TimeoutExpired):
+        return f"proposer timeout ({exc.timeout}s)"
+    if isinstance(exc, subprocess.CalledProcessError):
+        return f"proposer exit_code={exc.returncode}"
+    if isinstance(exc, FileNotFoundError):
+        return "proposer command_not_found"
+    return str(exc)
+
+
 def propose_change(
     current_rules: str,
     experiment_history: list[dict],
@@ -91,8 +102,11 @@ def propose_change(
             "--system-prompt",
             meta,
         ]
-        with open(prompt_file, "r", encoding="utf-8") as pf:
-            result = subprocess.run(cmd, stdin=pf, capture_output=True, text=True, timeout=180)
+        try:
+            with open(prompt_file, "r", encoding="utf-8") as pf:
+                result = subprocess.run(cmd, stdin=pf, capture_output=True, text=True, timeout=300)
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError) as e:
+            raise RuntimeError(_format_llm_error(e)) from e
         output = result.stdout.strip()
 
         # Strip markdown fences if the model wrapped its output
