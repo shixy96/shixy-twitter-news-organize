@@ -183,13 +183,15 @@ def run_auto_improve(
     original_rules = EDITORIAL_RULES.read_text(encoding="utf-8")
     original_size = len(original_rules)
 
-    # Create timestamped run directory for this session
+    # Create timestamped run directory for intermediate products (post.json, scores, etc.)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     RUNS_DIR = IMPROVE_DIR / "tmp_runs" / timestamp
-    EXPERIMENTS_LOG = RUNS_DIR / "experiments.jsonl"
     ensure_dir(RUNS_DIR)
 
-    # Per-run history (loaded from this session's experiments.jsonl, empty on first run)
+    # Global experiments log (append-only, cumulative across all runs)
+    EXPERIMENTS_LOG = IMPROVE_DIR / "experiments.jsonl"
+
+    # Load full history for proposer context (all completed iterations)
     history: list[dict] = []
     if EXPERIMENTS_LOG.exists():
         for line in EXPERIMENTS_LOG.read_text(encoding="utf-8").splitlines():
@@ -208,6 +210,22 @@ def run_auto_improve(
     )
     best_scores = baseline["scores_by_date"]
     print(f"[auto-improve] Baseline scores: {best_scores}")
+
+    # Log baseline as iter=0 so the full history is in experiments.jsonl
+    _log_experiment(
+        {
+            "iter": 0,
+            "run_id": timestamp,
+            "timestamp": datetime.now().isoformat(),
+            "scores_by_date": baseline["scores_by_date"],
+            "best_scores": baseline["scores_by_date"],
+            "accepted": None,
+            "change_summary": "baseline",
+            "any_fail": baseline["any_fail"],
+        },
+        EXPERIMENTS_LOG,
+    )
+    history.append({"iter": 0, "run_id": timestamp, "accepted": None, "change_summary": "baseline"})
 
     if baseline["any_fail"]:
         print("[auto-improve] WARNING: baseline has FAILs")
@@ -238,6 +256,7 @@ def run_auto_improve(
             _log_experiment(
                 {
                     "iter": iteration,
+                    "run_id": timestamp,
                     "timestamp": datetime.now().isoformat(),
                     "accepted": False,
                     "error": str(e),
@@ -246,7 +265,12 @@ def run_auto_improve(
                 EXPERIMENTS_LOG,
             )
             history.append(
-                {"iter": iteration, "accepted": False, "change_summary": "proposer_failed"}
+                {
+                    "iter": iteration,
+                    "run_id": timestamp,
+                    "accepted": False,
+                    "change_summary": "proposer_failed",
+                }
             )
             continue
 
@@ -295,6 +319,7 @@ def run_auto_improve(
 
         entry = {
             "iter": iteration,
+            "run_id": timestamp,
             "timestamp": datetime.now().isoformat(),
             "scores_by_date": new_scores,
             "best_scores": best_scores,

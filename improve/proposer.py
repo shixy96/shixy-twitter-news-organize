@@ -42,9 +42,10 @@ def propose_change(
         parts.append("## Experiment History\n")
         for exp in experiment_history[-10:]:  # last 10 experiments
             status = "ACCEPTED" if exp.get("accepted") else "REJECTED"
+            run_id = exp.get("run_id", "?")
             scores_str = json.dumps(exp.get("scores_by_date", {}), ensure_ascii=False)
             parts.append(
-                f"- Iter {exp.get('iter', '?')} [{status}] "
+                f"- [{run_id}] Iter {exp.get('iter', '?')} [{status}] "
                 f"scores={scores_str} — {exp.get('change_summary', '?')}"
             )
         parts.append("")

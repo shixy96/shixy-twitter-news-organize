@@ -286,11 +286,12 @@ class TestGitCommitRules(unittest.TestCase):
 
         expected_runs_dir = improve_dir / "tmp_runs" / fixed_ts
         self.assertTrue(expected_runs_dir.exists(), f"Expected {expected_runs_dir} to exist")
-        expected_log = expected_runs_dir / "experiments.jsonl"
+        # experiments.jsonl is now global (improve/experiments.jsonl), not per-run
+        expected_log = improve_dir / "experiments.jsonl"
         self.assertTrue(expected_log.exists(), f"Expected {expected_log} to exist")
-        # log should have exactly one entry (one iteration)
+        # log should have exactly two entries: baseline (iter=0) + one iteration
         lines = [l for l in expected_log.read_text(encoding="utf-8").splitlines() if l.strip()]
-        self.assertEqual(len(lines), 1)
+        self.assertEqual(len(lines), 2)
 
         loop_module.EVAL_DIR = old_eval_dir
         loop_module.IMPROVE_DIR = old_improve_dir
