@@ -29,7 +29,7 @@ def _format_llm_error(exc: Exception) -> str:
     if isinstance(exc, subprocess.CalledProcessError):
         return f"judge exit_code={exc.returncode}"
     if isinstance(exc, FileNotFoundError):
-        return "judge command_not_found"
+        return "judge command not found"
     if isinstance(exc, json.JSONDecodeError):
         return f"judge json_parse: {exc}"
     return str(exc)

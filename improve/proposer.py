@@ -18,7 +18,7 @@ def _format_llm_error(exc: Exception) -> str:
     if isinstance(exc, subprocess.CalledProcessError):
         return f"proposer exit_code={exc.returncode}"
     if isinstance(exc, FileNotFoundError):
-        return "proposer command_not_found"
+        return "proposer command not found"
     return str(exc)
 
 

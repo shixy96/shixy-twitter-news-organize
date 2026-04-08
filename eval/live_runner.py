@@ -48,7 +48,7 @@ def _format_llm_error(exc: Exception) -> str:
     if isinstance(exc, subprocess.CalledProcessError):
         return f"digest exit_code={exc.returncode}"
     if isinstance(exc, FileNotFoundError):
-        return "digest command_not_found"
+        return "digest command not found"
     return str(exc)
 
 
