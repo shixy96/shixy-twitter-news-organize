@@ -52,6 +52,51 @@ def _format_llm_error(exc: Exception) -> str:
     return str(exc)
 
 
+def _extract_json_from_output(raw: str) -> str:
+    """Extract the first JSON object from LLM output.
+
+    Handles: markdown fences, trailing text (Extra data), plain JSON.
+    """
+    # 1. Try markdown fence first
+    m = re.search(r"```(?:json)?\s*\n?(.*?)\n?```", raw, re.DOTALL)
+    if m:
+        return m.group(1).strip()
+
+    # 2. Find matching braces to extract the first complete JSON object
+    start = raw.find("{")
+    if start < 0:
+        return raw.strip()
+
+    depth = 0
+    in_string = False
+    escape = False
+    for i in range(start, len(raw)):
+        c = raw[i]
+        if escape:
+            escape = False
+            continue
+        if c == "\\":
+            escape = True
+            continue
+        if c == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                return raw[start : i + 1]
+
+    # Fallback: { to last }
+    end = raw.rfind("}")
+    if end > start:
+        return raw[start : end + 1]
+    return raw.strip()
+
+
 def build_prompt(
     filtered_json: str,
     editorial_rules: str,
@@ -192,17 +237,8 @@ def run_single(
 
         raw_output = result.stdout.strip()
 
-        # Extract JSON from output (strip markdown fences if present)
-        json_match = re.search(
-            r"```(?:json)?\s*\n?(.*?)\n?```",
-            raw_output,
-            re.DOTALL,
-        )
-        if json_match:
-            json_str = json_match.group(1).strip()
-        else:
-            # Try to find raw JSON object
-            json_str = raw_output.strip()
+        # Extract JSON from output (handles fences, trailing text, plain JSON)
+        json_str = _extract_json_from_output(raw_output)
 
         # Parse JSON
         try:

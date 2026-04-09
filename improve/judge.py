@@ -4,10 +4,15 @@
 from __future__ import annotations
 
 import json
-import re
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
+
+_EVAL_DIR = Path(__file__).resolve().parent.parent / "eval"
+if str(_EVAL_DIR) not in sys.path:
+    sys.path.insert(0, str(_EVAL_DIR))
+from live_runner import _extract_json_from_output
 
 RUBRIC_PATH = Path(__file__).resolve().parent / "judge_rubric.md"
 
@@ -79,10 +84,7 @@ def score_digest(
 
         raw = result.stdout.strip()
 
-        # Extract JSON (strip markdown fences if present)
-        m = re.search(r"```(?:json)?\s*\n?(.*?)\n?```", raw, re.DOTALL)
-        json_str = m.group(1).strip() if m else raw.strip()
-
+        json_str = _extract_json_from_output(raw)
         data = json.loads(json_str)
         _validate_judge_output(data)
         return data
