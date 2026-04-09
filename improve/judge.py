@@ -4,10 +4,15 @@
 from __future__ import annotations
 
 import json
-import re
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
+
+_EVAL_DIR = Path(__file__).resolve().parent.parent / "eval"
+if str(_EVAL_DIR) not in sys.path:
+    sys.path.insert(0, str(_EVAL_DIR))
+from live_runner import _extract_json_from_output
 
 RUBRIC_PATH = Path(__file__).resolve().parent / "judge_rubric.md"
 
@@ -20,6 +25,19 @@ DIMENSIONS = [
     "editorial_judgment",
     "overall_coherence",
 ]
+
+
+def _format_llm_error(exc: Exception) -> str:
+    """Return a short, log-friendly LLM error string."""
+    if isinstance(exc, subprocess.TimeoutExpired):
+        return f"judge timeout ({exc.timeout}s)"
+    if isinstance(exc, subprocess.CalledProcessError):
+        return f"judge exit_code={exc.returncode}"
+    if isinstance(exc, FileNotFoundError):
+        return "judge command not found"
+    if isinstance(exc, json.JSONDecodeError):
+        return f"judge json_parse: {exc}"
+    return str(exc)
 
 
 def structural_score(metrics: dict) -> int:
@@ -62,14 +80,11 @@ def score_digest(
             system_prompt,
         ]
         with open(prompt_file, "r", encoding="utf-8") as pf:
-            result = subprocess.run(cmd, stdin=pf, capture_output=True, text=True, timeout=120)
+            result = subprocess.run(cmd, stdin=pf, capture_output=True, text=True, timeout=300)
 
         raw = result.stdout.strip()
 
-        # Extract JSON (strip markdown fences if present)
-        m = re.search(r"```(?:json)?\s*\n?(.*?)\n?```", raw, re.DOTALL)
-        json_str = m.group(1).strip() if m else raw.strip()
-
+        json_str = _extract_json_from_output(raw)
         data = json.loads(json_str)
         _validate_judge_output(data)
         return data
@@ -85,7 +100,7 @@ def score_digest(
         return {
             "scores": {d: {"score": 0, "reason": "judge error"} for d in DIMENSIONS},
             "total": 0,
-            "major_issues": [f"Judge failed: {e}"],
+            "major_issues": [_format_llm_error(e)],
         }
     finally:
         Path(prompt_file).unlink(missing_ok=True)

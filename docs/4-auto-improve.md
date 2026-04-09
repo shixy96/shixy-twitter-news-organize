@@ -72,16 +72,22 @@ loop (max N 次):
 
 ```
 improve/
-├── cli.py              # CLI 入口 (~120 行)
-├── loop.py             # Hill-climbing 循环 (~180 行)
-├── judge.py            # LLM-as-judge 评分 (~100 行)
-├── proposer.py         # 提议 rules 修改 (~80 行)
-├── meta.md             # 给 improver agent 的 meta 指令
-├── judge_rubric.md     # 固定评分 rubric（不被修改）
-└── experiments.jsonl   # 实验日志（gitignored）
+├── cli.py                  # CLI 入口 (~120 行)
+├── loop.py                 # Hill-climbing 循环 (~180 行)
+├── judge.py                # LLM-as-judge 评分 (~100 行)
+├── proposer.py             # 提议 rules 修改 (~80 行)
+├── meta.md                 # 给 improver agent 的 meta 指令
+├── judge_rubric.md         # 固定评分 rubric（不被修改）
+├── experiments.jsonl       # 全局实验日志（append-only，累积所有运行）
+└── tmp_runs/               # 中间产物（gitignored）
+    └── YYYYMMDD_HHMMSS/    # 每次运行的 timestamp 目录
+        └── 2026-04-08/     # fixture date
+            └── iter-XXX/   # 每次迭代的 post.json、评分等
 
 .claude/commands/auto-improve.md  # slash command
 ```
+
+**多次运行说明**：每次 `auto-improve` 调用新建 `tmp_runs/YYYYMMDD_HHMMSS/` 目录存放中间产物。`experiments.jsonl` 为全局 append-only 日志，所有运行的迭代都追加到同一文件，通过 `run_id` 字段（值为 timestamp）区分不同运行场次。proposer 加载 history 时可看到所有已完成迭代。
 
 ### 6. 复用现有代码
 

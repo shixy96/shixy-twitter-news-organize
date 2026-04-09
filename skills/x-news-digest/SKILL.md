@@ -102,12 +102,22 @@ mkdir -p "$DAILY_DIR" "$MEDIA_DIR"
 
 为每条选中内容编写中文标题和正文，输出 `$POST_JSON_PATH`。
 
+#### 输出要求（硬性）
+
+- 最终答案必须是**一个完整、合法的 JSON 对象**
+- **禁止**输出 markdown code fence（如 ```json）
+- **禁止**在 JSON 前后输出任何解释、说明、致歉、分析或补充文字
+- 所有 key 和字符串都必须使用 JSON 双引号
+- URL、字符串、数组、对象必须完整闭合，禁止输出半截 JSON
+- 输出前必须自行检查一次，确认内容可被严格 JSON 解析器直接解析
+- 若中途思考过其它表述，最终只保留 JSON，不保留思考过程
+
 #### post.json 结构
 
 ```json
 {
   "title": "{当日核心要点}【AI 资讯日报 {REPORT_DATE}】",
-  "description": "每日 AI 领域精选资讯",
+  "description": "每日 AI 领域精选资讯：{实际使用的分类列表}",
   "pubDate": "{REPORT_DATE}",
   "tags": ["AI", "资讯", "日报"],
   "slug": "ai-news-{REPORT_DATE}",
@@ -170,10 +180,12 @@ mkdir -p "$DAILY_DIR" "$MEDIA_DIR"
 1. ✅ item 总数在 8-12 范围（候选充足时）
 2. ✅ 每条 title 是中文，且不是原始推文标题的直拷
 3. ✅ 每条 body 是中文正文，不含重复段落
-4. ✅ category 来自允许列表（模型发布、开发生态、技术洞察、产品动态、安全事件、行业观点）
+4. ✅ 优先使用固定分类；若扩展分类，命名清晰且确有必要，不只是对固定分类换个说法
 5. ✅ 无 placeholder 文本（TODO、TBD、xxx、待补充）
 6. ✅ related_links 中的 URL 不是捏造的
 7. ✅ canonical_id 字段已填写（用于可追溯性）
+8. ✅ 最终输出是**单个合法 JSON 对象**，无 markdown fence、无额外文字
+9. ✅ 所有 URL、字符串、数组、对象都已完整闭合，没有截断
 
 不通过则修复后重新写出。
 

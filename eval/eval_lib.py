@@ -19,7 +19,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 EVAL_ROOT = REPO_ROOT / "eval"
 EVAL_RUNS_ROOT = EVAL_ROOT / "runs"
 
-ALLOWED_CATEGORIES = {
+PREFERRED_CATEGORIES = {
     "模型发布",
     "开发生态",
     "技术洞察",
@@ -27,6 +27,14 @@ ALLOWED_CATEGORIES = {
     "安全事件",
     "行业观点",
 }
+
+INVALID_CATEGORY_NAMES = {"其他", "杂项", "未分类", "其它", "综合", "misc", "other", "xxx"}
+NEAR_DUPLICATE_CATEGORY_GROUPS = [
+    {"开发生态", "开源生态"},
+    {"技术洞察", "技术研究"},
+    {"安全事件", "安全研究"},
+    {"产品动态", "产品更新"},
+]
 
 
 # ---------------------------------------------------------------------------
@@ -106,20 +114,64 @@ def evaluate_digest(artifacts_dir: Path) -> dict:
     categories = post.get("categories") or []
     items = []
     selected_ids = []
+    category_checks = []
+    nonstandard_categories = []
+    preferred_categories_used = []
+    category_names = []
     for cat in categories:
         if not isinstance(cat, dict):
             errors.append(f"invalid category: not a dict")
             status = "FAIL"
             continue
         cat_name = cat.get("name", "")
-        if cat_name not in ALLOWED_CATEGORIES:
-            errors.append(f"invalid category: {cat_name}")
+        issues = []
+        kind = "preferred" if cat_name in PREFERRED_CATEGORIES else "extended"
+        if not isinstance(cat_name, str) or not cat_name.strip():
+            errors.append("invalid category: empty")
             status = "FAIL"
+            cat_name = ""
+            issues.append("empty_name")
+        else:
+            cat_name = cat_name.strip()
+            category_names.append(cat_name)
+            if cat_name in PREFERRED_CATEGORIES:
+                preferred_categories_used.append(cat_name)
+            else:
+                nonstandard_categories.append(cat_name)
+                if cat_name in INVALID_CATEGORY_NAMES:
+                    errors.append(f"invalid category: {cat_name}")
+                    status = "FAIL"
+                    issues.append("placeholder_name")
         if cat.get("items") is None:
             errors.append("items is null")
             status = "FAIL"
-        for item in cat.get("items") or []:
+            issues.append("items_null")
+        item_list = cat.get("items") or []
+        for item in item_list:
             items.append(item)
+        category_checks.append(
+            {
+                "name": cat_name,
+                "kind": kind,
+                "issues": issues,
+                "item_count": len(item_list),
+            }
+        )
+
+    present_names = set(category_names)
+    duplicate_like_names: set[str] = set()
+    for group in NEAR_DUPLICATE_CATEGORY_GROUPS:
+        overlap = present_names & group
+        if len(overlap) > 1:
+            duplicate_like_names.update(overlap)
+
+    if duplicate_like_names:
+        warnings.append(f"near-duplicate categories: {'、'.join(sorted(duplicate_like_names))}")
+        if status == "PASS":
+            status = "WARN"
+        for check in category_checks:
+            if check["name"] in duplicate_like_names:
+                check["issues"].append("near_duplicate_name")
 
     item_checks = []
     for idx, item in enumerate(items):
@@ -202,6 +254,9 @@ def evaluate_digest(artifacts_dir: Path) -> dict:
         "item_count": item_count,
         "selected_ids": selected_ids,
         "item_checks": item_checks,
+        "category_checks": category_checks,
+        "nonstandard_categories": nonstandard_categories,
+        "preferred_categories_used": preferred_categories_used,
     }
 
 

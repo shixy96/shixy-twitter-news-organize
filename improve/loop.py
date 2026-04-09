@@ -12,7 +12,6 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 IMPROVE_DIR = Path(__file__).resolve().parent
-EXPERIMENTS_LOG = IMPROVE_DIR / "experiments.jsonl"
 EDITORIAL_RULES = REPO_ROOT / "skills" / "x-news-digest" / "reference" / "editorial-rules.md"
 EVAL_DIR = REPO_ROOT / "eval"
 
@@ -22,6 +21,11 @@ from live_runner import run_single
 
 from judge import composite_score, score_digest, structural_score
 from proposer import propose_change
+
+
+def _is_transient_error(errors: list[str]) -> bool:
+    """Return True if any error message indicates a transient LLM failure."""
+    return any("JSON parse" in e or "timeout" in e or "timed out" in e for e in errors)
 
 
 def discover_fixtures() -> list[str]:
@@ -40,43 +44,93 @@ def evaluate_candidate(
     runs_per_iter: int,
     digest_model: str,
     judge_model: str,
+    runs_dir: Path,
+    iter_num: int = 0,
 ) -> dict:
     """Evaluate current editorial-rules.md across all fixture dates.
 
     Returns {
         "scores_by_date": {date: median_composite},
+        "run_scores_by_date": {date: [run_score_dict...]},
         "judge_feedback": [judge_outputs...],
         "any_fail": bool,
+        "fail_reasons": [reason...],
+        "fail_count": int,
     }
     """
     scores_by_date: dict[str, int] = {}
+    run_scores_by_date: dict[str, list[dict]] = {}
     all_judge_feedback: list[dict] = []
     any_fail = False
+    fail_reasons: list[str] = []
+    seen_fail_reasons: set[str] = set()
+    fail_count = 0
+    transient_fail_count = 0  # per-run count, not deduplicated
 
     for date in dates:
         filtered_path = EVAL_DIR / "fixtures" / date / "filtered.json"
         date_scores: list[int] = []
+        date_run_scores: list[dict] = []
         date_feedback: list[dict] = []
 
         for i in range(runs_per_iter):
-            # Create temp run dir
-            run_dir = ensure_dir(IMPROVE_DIR / "tmp_runs" / date / f"run-{i + 1:03d}")
+            # Create temp run dir with iteration number to avoid collision
+            run_dir = ensure_dir(runs_dir / date / f"iter-{iter_num:03d}" / f"run-{i + 1:03d}")
             try:
                 metrics = run_single(date, run_dir, filtered_path, digest_model, False, i + 1)
+                # Retry once on transient failures (JSON parse error, timeout)
+                if metrics.get("status") == "FAIL":
+                    errors = metrics.get("errors", [])
+                    is_transient = _is_transient_error(errors)
+                    if is_transient:
+                        retry_dir = ensure_dir(
+                            runs_dir / date / f"iter-{iter_num:03d}" / f"run-{i + 1:03d}-retry"
+                        )
+                        metrics = run_single(
+                            date, retry_dir, filtered_path, digest_model, False, i + 1
+                        )
+                        # Use retry_dir for artifact lookup if retry succeeded
+                        if metrics.get("status") != "FAIL":
+                            run_dir = retry_dir
             except Exception as e:
                 metrics = {"status": "FAIL", "errors": [str(e)]}
                 any_fail = True
-                date_scores.append(0)
+                fail_count += 1
+                c_score = 0
+                date_scores.append(c_score)
                 judge_result = {"scores": {}, "total": 0, "major_issues": [str(e)]}
+                if str(e) not in seen_fail_reasons:
+                    fail_reasons.append(str(e))
+                    seen_fail_reasons.add(str(e))
+                date_run_scores.append(
+                    {
+                        "run": i + 1,
+                        "status": "FAIL",
+                        "structural_score": 0,
+                        "editorial_score": 0,
+                        "composite_score": c_score,
+                    }
+                )
                 date_feedback.append(judge_result)
                 all_judge_feedback.append(judge_result)
                 continue
 
             s_score = structural_score(metrics)
+            is_transient_run = False
+            judge_failed = False
             if metrics.get("status") == "FAIL":
                 any_fail = True
+                fail_count += 1
                 e_score = 0
-                judge_result = {"scores": {}, "total": 0, "major_issues": ["structurally failed"]}
+                issues = metrics.get("errors") or ["structurally failed"]
+                is_transient_run = _is_transient_error(issues)
+                if is_transient_run:
+                    transient_fail_count += 1
+                judge_result = {"scores": {}, "total": 0, "major_issues": issues}
+                for issue in issues:
+                    if issue not in seen_fail_reasons:
+                        fail_reasons.append(issue)
+                        seen_fail_reasons.add(issue)
             else:
                 artifacts_dir = run_dir / "results" / "artifacts"
                 post_path = artifacts_dir / "post.json"
@@ -85,37 +139,48 @@ def evaluate_candidate(
                     post_json = post_path.read_text(encoding="utf-8")
                     judge_result = score_digest(filtered_json, post_json, judge_model)
                     e_score = judge_result.get("total", 0)
+                    # Detect judge measurement failure: structural PASS but all editorial dims=0
+                    # This means the judge LLM timed out or returned bad JSON — not a quality signal.
+                    judge_failed = e_score == 0 and bool(
+                        judge_result.get("major_issues")
+                        and any(
+                            "judge" in m.lower() or "timeout" in m.lower()
+                            for m in judge_result["major_issues"]
+                        )
+                    )
                 else:
                     e_score = 0
+                    judge_failed = True
                     judge_result = {"scores": {}, "total": 0, "major_issues": ["no post.json"]}
 
             c_score = composite_score(s_score, e_score)
-            date_scores.append(c_score)
+            # Exclude measurement noise: transient digest FAILs and judge measurement failures
+            if not is_transient_run and not judge_failed:
+                date_scores.append(c_score)
+            date_run_scores.append(
+                {
+                    "run": i + 1,
+                    "status": metrics.get("status", "FAIL"),
+                    "structural_score": s_score,
+                    "editorial_score": e_score,
+                    "composite_score": c_score,
+                }
+            )
             date_feedback.append(judge_result)
             all_judge_feedback.append(judge_result)
 
         scores_by_date[date] = int(statistics.median(date_scores)) if date_scores else 0
-
-    # Clean up tmp_runs
-    _rmtree(IMPROVE_DIR / "tmp_runs")
+        run_scores_by_date[date] = date_run_scores
 
     return {
         "scores_by_date": scores_by_date,
+        "run_scores_by_date": run_scores_by_date,
         "judge_feedback": all_judge_feedback,
         "any_fail": any_fail,
+        "fail_reasons": fail_reasons,
+        "fail_count": fail_count,
+        "transient_fail_count": transient_fail_count,
     }
-
-
-def _rmtree(p: Path) -> None:
-    """Remove directory tree (stdlib only)."""
-    if not p.exists():
-        return
-    for child in p.iterdir():
-        if child.is_dir():
-            _rmtree(child)
-        else:
-            child.unlink()
-    p.rmdir()
 
 
 def _git_commit_rules(message: str) -> str:
@@ -160,9 +225,9 @@ def _git_discard_rules() -> None:
     )
 
 
-def _log_experiment(entry: dict) -> None:
+def _log_experiment(entry: dict, experiments_log: Path) -> None:
     """Append experiment to JSONL log."""
-    with open(EXPERIMENTS_LOG, "a", encoding="utf-8") as f:
+    with open(experiments_log, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
 
 
@@ -184,6 +249,8 @@ def run_auto_improve(
     digest_model: str = "sonnet",
     judge_model: str = "opus",
     proposer_model: str = "opus",
+    experiments_log: Path | None = None,
+    runs_root: Path | None = None,
 ) -> dict:
     """Run the hill-climbing auto-improve loop.
 
@@ -197,7 +264,16 @@ def run_auto_improve(
     original_rules = EDITORIAL_RULES.read_text(encoding="utf-8")
     original_size = len(original_rules)
 
-    # Load experiment history
+    # Create timestamped run directory for intermediate products (post.json, scores, etc.)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    runs_base_dir = runs_root or (IMPROVE_DIR / "tmp_runs")
+    RUNS_DIR = runs_base_dir / timestamp
+    ensure_dir(RUNS_DIR)
+
+    # Global experiments log (append-only, cumulative across all runs)
+    EXPERIMENTS_LOG = experiments_log or (IMPROVE_DIR / "experiments.jsonl")
+
+    # Load full history for proposer context (all completed iterations)
     history: list[dict] = []
     if EXPERIMENTS_LOG.exists():
         for line in EXPERIMENTS_LOG.read_text(encoding="utf-8").splitlines():
@@ -211,9 +287,30 @@ def run_auto_improve(
 
     # Baseline evaluation
     print("[auto-improve] Evaluating baseline...")
-    baseline = evaluate_candidate(dates, runs_per_iter, digest_model, judge_model)
+    baseline = evaluate_candidate(
+        dates, runs_per_iter, digest_model, judge_model, RUNS_DIR, iter_num=0
+    )
     best_scores = baseline["scores_by_date"]
     print(f"[auto-improve] Baseline scores: {best_scores}")
+
+    # Log baseline as iter=0 so the full history is in experiments.jsonl
+    _log_experiment(
+        {
+            "iter": 0,
+            "run_id": timestamp,
+            "timestamp": datetime.now().isoformat(),
+            "scores_by_date": baseline["scores_by_date"],
+            "run_scores_by_date": baseline.get("run_scores_by_date", {}),
+            "best_scores": baseline["scores_by_date"],
+            "accepted": None,
+            "change_summary": "baseline",
+            "any_fail": baseline["any_fail"],
+            "fail_count": baseline.get("fail_count", 0),
+            "fail_reasons": baseline.get("fail_reasons", []),
+        },
+        EXPERIMENTS_LOG,
+    )
+    history.append({"iter": 0, "run_id": timestamp, "accepted": None, "change_summary": "baseline"})
 
     if baseline["any_fail"]:
         print("[auto-improve] WARNING: baseline has FAILs")
@@ -221,6 +318,9 @@ def run_auto_improve(
 
     accepted_count = 0
     rejected_count = 0
+    # Track the most recent judge feedback regardless of accept/reject,
+    # so the proposer always learns from the latest evaluation.
+    latest_judge_feedback = baseline["judge_feedback"]
 
     for iteration in range(1, max_iters + 1):
         print(f"[auto-improve] === Iteration {iteration}/{max_iters} ===")
@@ -229,28 +329,36 @@ def run_auto_improve(
         current_rules = EDITORIAL_RULES.read_text(encoding="utf-8")
 
         # Check size guard
-        if len(current_rules) > original_size * 2:
+        consolidate = len(current_rules) > original_size * 2
+        if consolidate:
             print("[auto-improve] Rules file too large, instructing proposer to consolidate")
 
         # Propose change
         print("[auto-improve] Proposing change...")
         try:
             new_rules = propose_change(
-                current_rules, history, baseline["judge_feedback"], proposer_model
+                current_rules, history, latest_judge_feedback, proposer_model, consolidate
             )
         except Exception as e:
             print(f"[auto-improve] Proposer failed: {e}")
             _log_experiment(
                 {
                     "iter": iteration,
+                    "run_id": timestamp,
                     "timestamp": datetime.now().isoformat(),
                     "accepted": False,
                     "error": str(e),
                     "change_summary": "proposer_failed",
-                }
+                },
+                EXPERIMENTS_LOG,
             )
             history.append(
-                {"iter": iteration, "accepted": False, "change_summary": "proposer_failed"}
+                {
+                    "iter": iteration,
+                    "run_id": timestamp,
+                    "accepted": False,
+                    "change_summary": "proposer_failed",
+                }
             )
             continue
 
@@ -258,24 +366,72 @@ def run_auto_improve(
         change_summary = _summarize_diff(current_rules, new_rules)
         print(f"[auto-improve] Change: {change_summary}")
 
+        # Guard: reject large rewrites — they're hard to evaluate and risky.
+        # Count added lines (new lines not in old); limit to 50.
+        old_line_set = set(current_rules.splitlines())
+        added_lines = sum(1 for l in new_rules.splitlines() if l not in old_line_set)
+        if added_lines > 50:
+            print(f"[auto-improve] SKIP (rewrite too large: +{added_lines} lines, max 50)")
+            _log_experiment(
+                {
+                    "iter": iteration,
+                    "run_id": timestamp,
+                    "timestamp": datetime.now().isoformat(),
+                    "scores_by_date": {},
+                    "run_scores_by_date": {},
+                    "accepted": False,
+                    "error": f"proposer rewrite too large (+{added_lines} lines)",
+                    "change_summary": change_summary,
+                },
+                EXPERIMENTS_LOG,
+            )
+            history.append(
+                {
+                    "iter": iteration,
+                    "run_id": timestamp,
+                    "accepted": False,
+                    "change_summary": change_summary,
+                }
+            )
+            rejected_count += 1
+            print()
+            continue
+
         # Apply
         EDITORIAL_RULES.write_text(new_rules, encoding="utf-8")
 
         # Evaluate
         print("[auto-improve] Evaluating...")
-        result = evaluate_candidate(dates, runs_per_iter, digest_model, judge_model)
+        result = evaluate_candidate(
+            dates, runs_per_iter, digest_model, judge_model, RUNS_DIR, iter_num=iteration
+        )
         new_scores = result["scores_by_date"]
         print(f"[auto-improve] New scores: {new_scores} (best: {best_scores})")
 
         # Decide
+        # Transient failures (JSON parse error, timeout) are measurement noise, not rule quality.
+        # Hard failures (structural content issues, invalid categories) are genuine problems.
+        total_runs = runs_per_iter * len(dates)
+        fail_count = result.get("fail_count", 0)
+        transient_count = result.get("transient_fail_count", 0)
+        hard_fail_count = fail_count - transient_count
+
         accept = False
-        if result["any_fail"]:
-            print("[auto-improve] REJECT (has FAILs)")
+        if hard_fail_count > 0:
+            print(f"[auto-improve] REJECT (hard fails: {hard_fail_count})")
+        elif fail_count > total_runs * 0.5:
+            # More than half of runs failed (even if transient) — too noisy to trust
+            print(
+                f"[auto-improve] REJECT (too many fails: {result.get('fail_count', 0)}/{total_runs})"
+            )
         elif _pareto_improved(new_scores, best_scores):
             accept = True
             print("[auto-improve] ACCEPT (Pareto improvement)")
         else:
             print("[auto-improve] REJECT (no Pareto improvement)")
+
+        # Always update latest_judge_feedback so the proposer learns from every evaluation.
+        latest_judge_feedback = result.get("judge_feedback", latest_judge_feedback)
 
         commit_hash = None
         if accept:
@@ -289,25 +445,27 @@ def run_auto_improve(
             else:
                 best_scores = new_scores
                 accepted_count += 1
-                # Update judge feedback for next iteration
-                baseline = result
         else:
             _git_discard_rules()
             rejected_count += 1
 
         entry = {
             "iter": iteration,
+            "run_id": timestamp,
             "timestamp": datetime.now().isoformat(),
             "scores_by_date": new_scores,
+            "run_scores_by_date": result.get("run_scores_by_date", {}),
             "best_scores": best_scores,
             "accepted": accept,
             "change_summary": change_summary,
             "any_fail": result["any_fail"],
+            "fail_count": result.get("fail_count", 0),
+            "fail_reasons": result.get("fail_reasons", []),
         }
         if commit_hash is not None:
             entry["commit"] = commit_hash
 
-        _log_experiment(entry)
+        _log_experiment(entry, EXPERIMENTS_LOG)
         history.append(entry)
         print()
 

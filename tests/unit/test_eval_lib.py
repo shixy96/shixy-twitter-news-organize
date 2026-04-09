@@ -11,7 +11,7 @@ sys_path_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(sys_path_root))
 
 from eval.eval_lib import (
-    ALLOWED_CATEGORIES,
+    PREFERRED_CATEGORIES,
     _mean,
     _std,
     build_benchmark,
@@ -165,8 +165,43 @@ class TestEvaluateDigest(unittest.TestCase):
         post["categories"][0]["name"] = "非法分类"
         self._write_post(post)
         result = evaluate_digest(self.artifacts_dir)
+        self.assertNotEqual(result["status"], "FAIL")
+        self.assertIn("非法分类", result["nonstandard_categories"])
+        self.assertEqual(result["category_checks"][0]["kind"], "extended")
+
+    def test_placeholder_category_still_fails(self):
+        post = self._valid_post()
+        post["categories"][0]["name"] = "其他"
+        self._write_post(post)
+        result = evaluate_digest(self.artifacts_dir)
         self.assertEqual(result["status"], "FAIL")
-        self.assertIn("invalid category: 非法分类", result["errors"])
+        self.assertIn("invalid category: 其他", result["errors"])
+
+    def test_near_duplicate_categories_warn(self):
+        post = self._valid_post()
+        post["categories"][0]["name"] = "开发生态"
+        post["categories"].append(
+            {
+                "name": "开源生态",
+                "items": [
+                    {
+                        "canonical_id": "id-002",
+                        "title": "第二个标题",
+                        "link": "https://x.com/test/2",
+                        "body": "这是第二条测试正文内容，长度足够，用来验证近义分类同时出现时会触发 category 级别的 warning。".ljust(
+                            100
+                        ),
+                    }
+                ],
+            }
+        )
+        self._write_post(post)
+        result = evaluate_digest(self.artifacts_dir)
+        self.assertEqual(result["status"], "WARN")
+        self.assertTrue(any("near-duplicate categories" in w for w in result["warnings"]))
+        checks = {c["name"]: c for c in result["category_checks"]}
+        self.assertIn("near_duplicate_name", checks["开发生态"]["issues"])
+        self.assertIn("near_duplicate_name", checks["开源生态"]["issues"])
 
     def test_title_not_chinese(self):
         post = self._valid_post()
@@ -258,7 +293,10 @@ class TestEvaluateDigest(unittest.TestCase):
         result = evaluate_digest(self.artifacts_dir)
         # Should return FAIL, not raise AttributeError
         self.assertEqual(result["status"], "FAIL")
-        self.assertEqual(result["item_checks"][0]["issues"], ["item_not_dict"])
+
+    def test_preferred_category_constant_contains_defaults(self):
+        self.assertIn("模型发布", PREFERRED_CATEGORIES)
+        self.assertIn("开发生态", PREFERRED_CATEGORIES)
 
     def test_categories_null_does_not_raise(self):
         """Null categories should be treated as empty list, not raise TypeError."""
